@@ -1,0 +1,31 @@
+{
+  "name": "duel-score",
+
+  "compatibility_date": "2026-07-15",
+
+  "main": "src/index.js",
+
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SCORE_ROOM",
+        "class_name": "ScoreRoom"
+      }
+    ]
+  },
+
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "ScoreRoom"
+      ]
+    }
+  ]
+}
