@@ -1,0 +1,2214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+>
+
+<meta
+  name="theme-color"
+  content="#111827"
+>
+
+<title>Duel Score</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+<style>
+
+:root{
+  --bg:#0b1020;
+  --card:#151c30;
+  --card2:#1d2740;
+  --text:#f8fafc;
+  --muted:#94a3b8;
+  --accent:#38bdf8;
+  --accent2:#fb7185;
+  --good:#34d399;
+  --line:#28344f;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+
+  background:
+    linear-gradient(
+      180deg,
+      #0b1020,
+      #111827
+    );
+
+  color:
+    var(--text);
+
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    sans-serif;
+
+  min-height:
+    100vh;
+}
+
+.app{
+  max-width:
+    760px;
+
+  margin:
+    auto;
+
+  padding:
+    16px
+    14px
+    88px;
+}
+
+.top{
+  display:flex;
+
+  justify-content:
+    space-between;
+
+  align-items:
+    center;
+
+  margin-bottom:
+    14px;
+}
+
+.title{
+  font-size:
+    20px;
+
+  font-weight:
+    800;
+}
+
+.room{
+  font-size:
+    12px;
+
+  color:
+    var(--muted);
+}
+
+.card{
+  background:
+    rgba(
+      21,
+      28,
+      48,
+      .96
+    );
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    18px;
+
+  padding:
+    16px;
+
+  margin-bottom:
+    14px;
+
+  box-shadow:
+    0 10px 28px
+    rgba(
+      0,
+      0,
+      0,
+      .22
+    );
+}
+
+.date{
+  color:
+    var(--muted);
+
+  font-size:
+    13px;
+
+  margin-bottom:
+    10px;
+
+  text-align:
+    center;
+}
+
+.scoregrid{
+  display:grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap:
+    12px;
+}
+
+.player{
+  background:
+    var(--card2);
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    16px;
+
+  padding:
+    14px;
+
+  text-align:
+    center;
+}
+
+.name{
+  font-size:
+    14px;
+
+  color:
+    var(--muted);
+
+  margin-bottom:
+    8px;
+}
+
+.score{
+  font-size:
+    58px;
+
+  line-height:
+    1;
+
+  font-weight:
+    900;
+
+  margin:
+    4px 0 14px;
+}
+
+.add{
+  width:
+    100%;
+
+  border:
+    0;
+
+  border-radius:
+    14px;
+
+  padding:
+    16px;
+
+  font-size:
+    22px;
+
+  font-weight:
+    900;
+
+  color:
+    #04111b;
+
+  background:
+    var(--accent);
+
+  cursor:
+    pointer;
+}
+
+.player:nth-child(2)
+.add{
+  background:
+    var(--accent2);
+}
+
+.actions{
+  display:grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap:
+    10px;
+
+  margin-top:
+    12px;
+}
+
+.btn{
+  border:
+    1px solid
+    var(--line);
+
+  background:
+    #0f172a;
+
+  color:
+    var(--text);
+
+  border-radius:
+    12px;
+
+  padding:
+    12px;
+
+  font-weight:
+    700;
+
+  cursor:
+    pointer;
+}
+
+.danger{
+  border-color:
+    #7f1d1d;
+
+  color:
+    #fecaca;
+}
+
+.summary{
+  display:grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap:
+    10px;
+}
+
+.metric{
+  background:
+    var(--card2);
+
+  border-radius:
+    14px;
+
+  padding:
+    14px;
+}
+
+.metric b{
+  font-size:
+    28px;
+
+  display:block;
+}
+
+.metric span{
+  font-size:
+    12px;
+
+  color:
+    var(--muted);
+}
+
+.history-item{
+  display:flex;
+
+  justify-content:
+    space-between;
+
+  padding:
+    12px 0;
+
+  border-bottom:
+    1px solid
+    var(--line);
+}
+
+.history-item:last-child{
+  border-bottom:
+    0;
+}
+
+.chart-wrap{
+  height:
+    260px;
+}
+
+.seg{
+  display:flex;
+
+  gap:
+    8px;
+
+  margin-bottom:
+    12px;
+}
+
+.seg button{
+  flex:
+    1;
+}
+
+.seg .active{
+  background:
+    var(--accent);
+
+  color:
+    #06101c;
+
+  border-color:
+    transparent;
+}
+
+.settings label{
+  display:block;
+
+  font-size:
+    12px;
+
+  color:
+    var(--muted);
+
+  margin:
+    10px 0 5px;
+}
+
+.settings input{
+  width:
+    100%;
+
+  background:
+    #0f172a;
+
+  border:
+    1px solid
+    var(--line);
+
+  color:
+    var(--text);
+
+  border-radius:
+    10px;
+
+  padding:
+    12px;
+
+  font-size:
+    16px;
+}
+
+.nav{
+  position:
+    fixed;
+
+  left:
+    50%;
+
+  bottom:
+    0;
+
+  transform:
+    translateX(-50%);
+
+  width:
+    min(
+      760px,
+      100%
+    );
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(
+      5,
+      1fr
+    );
+
+  background:
+    rgba(
+      11,
+      16,
+      32,
+      .97
+    );
+
+  border-top:
+    1px solid
+    var(--line);
+
+  padding:
+    8px
+    max(
+      8px,
+      env(
+        safe-area-inset-right
+      )
+    )
+    calc(
+      8px
+      +
+      env(
+        safe-area-inset-bottom
+      )
+    )
+    max(
+      8px,
+      env(
+        safe-area-inset-left
+      )
+    );
+
+  z-index:
+    10;
+}
+
+.nav button{
+  background:
+    none;
+
+  border:
+    0;
+
+  color:
+    var(--muted);
+
+  font-size:
+    11px;
+
+  padding:
+    8px 2px;
+}
+
+.nav button.active{
+  color:
+    var(--text);
+
+  font-weight:
+    800;
+}
+
+.view{
+  display:none;
+}
+
+.view.active{
+  display:block;
+}
+
+.status{
+  text-align:
+    center;
+
+  font-size:
+    12px;
+
+  color:
+    var(--muted);
+
+  margin-top:
+    8px;
+}
+
+.toast{
+  position:
+    fixed;
+
+  left:
+    50%;
+
+  bottom:
+    88px;
+
+  transform:
+    translateX(-50%);
+
+  background:
+    #020617;
+
+  color:
+    #fff;
+
+  border:
+    1px solid
+    var(--line);
+
+  padding:
+    10px 14px;
+
+  border-radius:
+    10px;
+
+  opacity:
+    0;
+
+  pointer-events:
+    none;
+
+  transition:
+    .2s;
+}
+
+.toast.show{
+  opacity:
+    1;
+}
+
+@media(
+  max-width:480px
+){
+
+  .app{
+    padding-left:
+      10px;
+
+    padding-right:
+      10px;
+  }
+
+  .score{
+    font-size:
+      48px;
+  }
+
+  .add{
+    font-size:
+      20px;
+  }
+
+  .chart-wrap{
+    height:
+      230px;
+  }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<div class="app">
+
+  <div class="top">
+
+    <div>
+
+      <div class="title">
+        Duel Score
+      </div>
+
+      <div
+        class="room"
+        id="roomLabel"
+      ></div>
+
+    </div>
+
+    <div
+      id="conn"
+      class="room"
+    >
+      connecting…
+    </div>
+
+  </div>
+
+
+  <section
+    id="today"
+    class="view active"
+  >
+
+    <div class="card">
+
+      <div
+        class="date"
+        id="todayDate"
+      ></div>
+
+
+      <div class="scoregrid">
+
+        <div class="player">
+
+          <div
+            class="name"
+            id="p1name"
+          >
+            Player 1
+          </div>
+
+          <div
+            class="score"
+            id="p1score"
+          >
+            0
+          </div>
+
+          <button
+            class="add"
+            data-player="p1"
+          >
+            +1
+          </button>
+
+        </div>
+
+
+        <div class="player">
+
+          <div
+            class="name"
+            id="p2name"
+          >
+            Player 2
+          </div>
+
+          <div
+            class="score"
+            id="p2score"
+          >
+            0
+          </div>
+
+          <button
+            class="add"
+            data-player="p2"
+          >
+            +1
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div class="actions">
+
+        <button
+          class="btn"
+          id="undoBtn"
+        >
+          Undo last point
+        </button>
+
+        <button
+          class="btn danger"
+          id="closeBtn"
+        >
+          Close day
+        </button>
+
+      </div>
+
+
+      <div
+        class="status"
+        id="lastPoint"
+      >
+        No points yet today.
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <section
+    id="general"
+    class="view"
+  >
+
+    <div class="card">
+
+      <h3>
+        Overall score
+      </h3>
+
+
+      <div class="summary">
+
+        <div class="metric">
+
+          <b id="p1total">
+            0
+          </b>
+
+          <span
+            id="p1totalLabel"
+          >
+            Player 1 total points
+          </span>
+
+        </div>
+
+
+        <div class="metric">
+
+          <b id="p2total">
+            0
+          </b>
+
+          <span
+            id="p2totalLabel"
+          >
+            Player 2 total points
+          </span>
+
+        </div>
+
+
+        <div class="metric">
+
+          <b id="p1wins">
+            0
+          </b>
+
+          <span
+            id="p1winsLabel"
+          >
+            Days won
+          </span>
+
+        </div>
+
+
+        <div class="metric">
+
+          <b id="p2wins">
+            0
+          </b>
+
+          <span
+            id="p2winsLabel"
+          >
+            Days won
+          </span>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <section
+    id="history"
+    class="view"
+  >
+
+    <div class="card">
+
+      <h3>
+        History
+      </h3>
+
+      <div
+        id="historyList"
+      ></div>
+
+    </div>
+
+  </section>
+
+
+  <section
+    id="charts"
+    class="view"
+  >
+
+    <div class="card">
+
+      <div class="seg">
+
+        <button
+          class="btn active"
+          id="weekBtn"
+        >
+          Weekly
+        </button>
+
+        <button
+          class="btn"
+          id="monthBtn"
+        >
+          Monthly
+        </button>
+
+      </div>
+
+
+      <div class="chart-wrap">
+
+        <canvas
+          id="scoreChart"
+        ></canvas>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <section
+    id="settings"
+    class="view"
+  >
+
+    <div class="card settings">
+
+      <h3>
+        Settings
+      </h3>
+
+
+      <label>
+        Player 1 name
+      </label>
+
+      <input
+        id="p1input"
+        maxlength="30"
+      >
+
+
+      <label>
+        Player 2 name
+      </label>
+
+      <input
+        id="p2input"
+        maxlength="30"
+      >
+
+
+      <button
+        class="btn"
+        id="saveSettings"
+        style="
+          width:100%;
+          margin-top:12px;
+        "
+      >
+        Save names
+      </button>
+
+    </div>
+
+  </section>
+
+</div>
+
+
+<nav class="nav">
+
+  <button
+    class="active"
+    data-view="today"
+  >
+    Today
+  </button>
+
+  <button
+    data-view="general"
+  >
+    General
+  </button>
+
+  <button
+    data-view="history"
+  >
+    History
+  </button>
+
+  <button
+    data-view="charts"
+  >
+    Charts
+  </button>
+
+  <button
+    data-view="settings"
+  >
+    Settings
+  </button>
+
+</nav>
+
+
+<div
+  class="toast"
+  id="toast"
+></div>
+
+
+<script>
+
+const params =
+  new URLSearchParams(
+    location.search
+  );
+
+
+const room =
+  params.get(
+    'room'
+  )
+  ||
+  localStorage.getItem(
+    'duel_room'
+  )
+  ||
+  'DUX-8427';
+
+
+localStorage.setItem(
+  'duel_room',
+  room
+);
+
+
+document
+  .getElementById(
+    'roomLabel'
+  )
+  .textContent =
+    'Room: '
+    +
+    room;
+
+
+let state =
+  null;
+
+
+let ws =
+  null;
+
+
+let chart =
+  null;
+
+
+let chartMode =
+  'week';
+
+
+const $ =
+  id =>
+    document.getElementById(
+      id
+    );
+
+
+// =========================================
+// TOAST
+// =========================================
+
+function toast(
+  text
+){
+
+  $('toast').textContent =
+    text;
+
+
+  $('toast')
+    .classList
+    .add(
+      'show'
+    );
+
+
+  clearTimeout(
+    toast.timer
+  );
+
+
+  toast.timer =
+    setTimeout(
+      () =>
+        $('toast')
+          .classList
+          .remove(
+            'show'
+          ),
+      1400
+    );
+
+}
+
+
+// =========================================
+// API
+// =========================================
+
+async function api(
+  path,
+  options = {}
+){
+
+  const separator =
+    path.includes('?')
+      ?
+      '&'
+      :
+      '?';
+
+
+  const response =
+    await fetch(
+      '/api'
+      +
+      path
+      +
+      separator
+      +
+      'room='
+      +
+      encodeURIComponent(
+        room
+      ),
+      {
+        headers:{
+          'content-type':
+            'application/json',
+
+          ...(
+            options.headers
+            ||
+            {}
+          )
+        },
+
+        ...options
+      }
+    );
+
+
+  return response.json();
+
+}
+
+
+// =========================================
+// REAL-TIME CONNECTION
+// =========================================
+
+function connect(){
+
+  const protocol =
+    location.protocol ===
+      'https:'
+      ?
+      'wss:'
+      :
+      'ws:';
+
+
+  ws =
+    new WebSocket(
+      protocol
+      +
+      '//'
+      +
+      location.host
+      +
+      '/api/ws?room='
+      +
+      encodeURIComponent(
+        room
+      )
+    );
+
+
+  ws.onopen =
+    () => {
+
+      $('conn').textContent =
+        'live';
+
+    };
+
+
+  ws.onclose =
+    () => {
+
+      $('conn').textContent =
+        'reconnecting…';
+
+
+      setTimeout(
+        connect,
+        1200
+      );
+
+    };
+
+
+  ws.onmessage =
+    event => {
+
+      const message =
+        JSON.parse(
+          event.data
+        );
+
+
+      if (
+        message.type ===
+        'state'
+      ){
+
+        state =
+          message.data;
+
+
+        render();
+
+      }
+
+    };
+
+}
+
+
+// =========================================
+// HELPERS
+// =========================================
+
+function fmtDate(
+  date
+){
+
+  try{
+
+    return new Date(
+      date
+      +
+      'T12:00:00'
+    )
+      .toLocaleDateString(
+        undefined,
+        {
+          weekday:
+            'long',
+
+          day:
+            'numeric',
+
+          month:
+            'short'
+        }
+      );
+
+  }
+
+  catch{
+
+    return date;
+
+  }
+
+}
+
+
+// =========================================
+// TOTALS
+// =========================================
+
+function totals(){
+
+  const days =
+    [
+      ...(
+        state?.history
+        ||
+        []
+      ),
+      state?.today
+    ]
+      .filter(
+        Boolean
+      );
+
+
+  let p1 =
+    0;
+
+  let p2 =
+    0;
+
+  let w1 =
+    0;
+
+  let w2 =
+    0;
+
+
+  for (
+    const day
+    of
+    days
+  ){
+
+    const a =
+      day.scores?.p1
+      ||
+      0;
+
+
+    const b =
+      day.scores?.p2
+      ||
+      0;
+
+
+    p1 +=
+      a;
+
+
+    p2 +=
+      b;
+
+
+    if (
+      day !==
+      state.today
+    ){
+
+      if (
+        a > b
+      ){
+        w1++;
+      }
+
+      else if (
+        b > a
+      ){
+        w2++;
+      }
+
+    }
+
+  }
+
+
+  return {
+    p1,
+    p2,
+    w1,
+    w2
+  };
+
+}
+
+
+// =========================================
+// MAIN RENDER
+// =========================================
+
+function render(){
+
+  if (!state) {
+    return;
+  }
+
+
+  const name1 =
+    state.players[0].name;
+
+
+  const name2 =
+    state.players[1].name;
+
+
+  $('p1name').textContent =
+    name1;
+
+
+  $('p2name').textContent =
+    name2;
+
+
+  $('p1score').textContent =
+    state.today.scores.p1;
+
+
+  $('p2score').textContent =
+    state.today.scores.p2;
+
+
+  $('todayDate').textContent =
+    fmtDate(
+      state.today.date
+    );
+
+
+  $('p1input').value =
+    name1;
+
+
+  $('p2input').value =
+    name2;
+
+
+  const last =
+    state.today.events[
+      state.today.events.length
+      -
+      1
+    ];
+
+
+  $('lastPoint').textContent =
+    last
+      ?
+      (
+        'Last point: '
+        +
+        (
+          last.playerId ===
+            'p1'
+            ?
+            name1
+            :
+            name2
+        )
+        +
+        ' · '
+        +
+        new Date(
+          last.at
+        )
+          .toLocaleTimeString(
+            [],
+            {
+              hour:
+                '2-digit',
+
+              minute:
+                '2-digit'
+            }
+          )
+      )
+      :
+      'No points yet today.';
+
+
+  const total =
+    totals();
+
+
+  $('p1total').textContent =
+    total.p1;
+
+
+  $('p2total').textContent =
+    total.p2;
+
+
+  $('p1wins').textContent =
+    total.w1;
+
+
+  $('p2wins').textContent =
+    total.w2;
+
+
+  $('p1totalLabel').textContent =
+    name1
+    +
+    ' total points';
+
+
+  $('p2totalLabel').textContent =
+    name2
+    +
+    ' total points';
+
+
+  $('p1winsLabel').textContent =
+    name1
+    +
+    ' days won';
+
+
+  $('p2winsLabel').textContent =
+    name2
+    +
+    ' days won';
+
+
+  renderHistory();
+
+
+  renderChart();
+
+}
+
+
+// =========================================
+// HISTORY
+// =========================================
+
+function renderHistory(){
+
+  const history =
+    [
+      ...(
+        state.history
+        ||
+        []
+      )
+    ]
+      .reverse();
+
+
+  $('historyList').innerHTML =
+    history.length
+      ?
+      ''
+      :
+      '<div class="room">No closed days yet.</div>';
+
+
+  for (
+    const day
+    of
+    history
+  ){
+
+    const p1 =
+      day.scores.p1
+      ||
+      0;
+
+
+    const p2 =
+      day.scores.p2
+      ||
+      0;
+
+
+    const winner =
+      p1 === p2
+        ?
+        'Tie'
+        :
+        (
+          p1 > p2
+            ?
+            state.players[0].name
+            :
+            state.players[1].name
+        );
+
+
+    const div =
+      document.createElement(
+        'div'
+      );
+
+
+    div.className =
+      'history-item';
+
+
+    div.innerHTML =
+      `
+        <div>
+          <b>
+            ${fmtDate(day.date)}
+          </b>
+
+          <div class="room">
+            Winner: ${winner}
+          </div>
+        </div>
+
+        <div>
+          <b>
+            ${p1} - ${p2}
+          </b>
+        </div>
+      `;
+
+
+    $('historyList')
+      .appendChild(
+        div
+      );
+
+  }
+
+}
+
+
+// =========================================
+// CHART DATA
+// =========================================
+
+function chartRows(){
+
+  const all =
+    [
+      ...(
+        state.history
+        ||
+        []
+      ),
+      state.today
+    ];
+
+
+  const now =
+    new Date();
+
+
+  // =======================================
+  // WEEKLY
+  // Last 7 calendar days
+  // =======================================
+
+  if (
+    chartMode ===
+    'week'
+  ){
+
+    const cutoff =
+      new Date(
+        now
+      );
+
+
+    cutoff.setDate(
+      cutoff.getDate()
+      -
+      6
+    );
+
+
+    return all
+
+      .filter(
+        day =>
+          new Date(
+            day.date
+            +
+            'T12:00:00'
+          )
+          >=
+          cutoff
+      )
+
+      .map(
+        day => ({
+          label:
+            new Date(
+              day.date
+              +
+              'T12:00:00'
+            )
+              .toLocaleDateString(
+                [],
+                {
+                  weekday:
+                    'short'
+                }
+              ),
+
+          p1:
+            day.scores.p1
+            ||
+            0,
+
+          p2:
+            day.scores.p2
+            ||
+            0
+        })
+      );
+
+  }
+
+
+  // =======================================
+  // MONTHLY
+  // Aggregate each month
+  // =======================================
+
+  const map =
+    new Map();
+
+
+  for (
+    const day
+    of
+    all
+  ){
+
+    const key =
+      day.date.slice(
+        0,
+        7
+      );
+
+
+    if (
+      !map.has(
+        key
+      )
+    ){
+
+      map.set(
+        key,
+        {
+          label:
+            new Date(
+              key
+              +
+              '-01T12:00:00'
+            )
+              .toLocaleDateString(
+                [],
+                {
+                  month:
+                    'short'
+                }
+              ),
+
+          p1:
+            0,
+
+          p2:
+            0
+        }
+      );
+
+    }
+
+
+    const entry =
+      map.get(
+        key
+      );
+
+
+    entry.p1 +=
+      day.scores.p1
+      ||
+      0;
+
+
+    entry.p2 +=
+      day.scores.p2
+      ||
+      0;
+
+  }
+
+
+  return [
+    ...map.values()
+  ]
+    .slice(
+      -6
+    );
+
+}
+
+
+// =========================================
+// CHART
+// =========================================
+
+function renderChart(){
+
+  if (
+    !state
+    ||
+    !$('scoreChart')
+  ){
+    return;
+  }
+
+
+  const rows =
+    chartRows();
+
+
+  const data = {
+
+    labels:
+      rows.map(
+        row =>
+          row.label
+      ),
+
+
+    datasets: [
+
+      {
+        label:
+          state.players[0].name,
+
+        data:
+          rows.map(
+            row =>
+              row.p1
+          )
+      },
+
+
+      {
+        label:
+          state.players[1].name,
+
+        data:
+          rows.map(
+            row =>
+              row.p2
+          )
+      }
+
+    ]
+
+  };
+
+
+  if (
+    chart
+  ){
+
+    chart.destroy();
+
+  }
+
+
+  chart =
+    new Chart(
+      $('scoreChart'),
+      {
+
+        type:
+          'line',
+
+
+        data,
+
+
+        options:{
+
+          responsive:
+            true,
+
+
+          maintainAspectRatio:
+            false,
+
+
+          plugins:{
+
+            legend:{
+
+              labels:{
+
+                color:
+                  '#e2e8f0'
+
+              }
+
+            }
+
+          },
+
+
+          scales:{
+
+            x:{
+
+              ticks:{
+
+                color:
+                  '#94a3b8'
+
+              },
+
+
+              grid:{
+
+                color:
+                  '#24304a'
+
+              }
+
+            },
+
+
+            y:{
+
+              beginAtZero:
+                true,
+
+
+              ticks:{
+
+                precision:
+                  0,
+
+
+                color:
+                  '#94a3b8'
+
+              },
+
+
+              grid:{
+
+                color:
+                  '#24304a'
+
+              }
+
+            }
+
+          }
+
+        }
+
+      }
+    );
+
+}
+
+
+// =========================================
+// POINT BUTTONS
+// =========================================
+
+document
+  .querySelectorAll(
+    '.add'
+  )
+  .forEach(
+    button => {
+
+      button.onclick =
+        async () => {
+
+          button.disabled =
+            true;
+
+
+          await api(
+            '/point',
+            {
+
+              method:
+                'POST',
+
+
+              body:
+                JSON.stringify({
+
+                  playerId:
+                    button.dataset.player
+
+                })
+
+            }
+          );
+
+
+          button.disabled =
+            false;
+
+        };
+
+    }
+  );
+
+
+// =========================================
+// UNDO
+// =========================================
+
+$('undoBtn').onclick =
+  () =>
+    api(
+      '/undo',
+      {
+        method:
+          'POST'
+      }
+    );
+
+
+// =========================================
+// CLOSE DAY
+// =========================================
+
+$('closeBtn').onclick =
+  async () => {
+
+    if (!state) {
+      return;
+    }
+
+
+    if (
+      confirm(
+        'Close today?\n'
+        +
+        state.players[0].name
+        +
+        ': '
+        +
+        state.today.scores.p1
+        +
+        '\n'
+        +
+        state.players[1].name
+        +
+        ': '
+        +
+        state.today.scores.p2
+      )
+    ){
+
+      await api(
+        '/close-day',
+        {
+          method:
+            'POST'
+        }
+      );
+
+
+      toast(
+        'Day closed'
+      );
+
+    }
+
+  };
+
+
+// =========================================
+// SAVE NAMES
+// =========================================
+
+$('saveSettings').onclick =
+  async () => {
+
+    await api(
+      '/settings',
+      {
+
+        method:
+          'POST',
+
+
+        body:
+          JSON.stringify({
+
+            p1:
+              $('p1input').value,
+
+
+            p2:
+              $('p2input').value
+
+          })
+
+      }
+    );
+
+
+    toast(
+      'Names saved'
+    );
+
+  };
+
+
+// =========================================
+// CHART SWITCH
+// =========================================
+
+$('weekBtn').onclick =
+  () => {
+
+    chartMode =
+      'week';
+
+
+    $('weekBtn')
+      .classList
+      .add(
+        'active'
+      );
+
+
+    $('monthBtn')
+      .classList
+      .remove(
+        'active'
+      );
+
+
+    renderChart();
+
+  };
+
+
+$('monthBtn').onclick =
+  () => {
+
+    chartMode =
+      'month';
+
+
+    $('monthBtn')
+      .classList
+      .add(
+        'active'
+      );
+
+
+    $('weekBtn')
+      .classList
+      .remove(
+        'active'
+      );
+
+
+    renderChart();
+
+  };
+
+
+// =========================================
+// BOTTOM NAVIGATION
+// =========================================
+
+document
+  .querySelectorAll(
+    '.nav button'
+  )
+  .forEach(
+    button => {
+
+      button.onclick =
+        () => {
+
+          document
+            .querySelectorAll(
+              '.nav button'
+            )
+            .forEach(
+              item =>
+                item
+                  .classList
+                  .remove(
+                    'active'
+                  )
+            );
+
+
+          button
+            .classList
+            .add(
+              'active'
+            );
+
+
+          document
+            .querySelectorAll(
+              '.view'
+            )
+            .forEach(
+              view =>
+                view
+                  .classList
+                  .remove(
+                    'active'
+                  )
+            );
+
+
+          $(
+            button.dataset.view
+          )
+            .classList
+            .add(
+              'active'
+            );
+
+
+          if (
+            button.dataset.view ===
+            'charts'
+          ){
+
+            setTimeout(
+              renderChart,
+              50
+            );
+
+          }
+
+        };
+
+    }
+  );
+
+
+// =========================================
+// INITIAL LOAD
+// =========================================
+
+(async () => {
+
+  const response =
+    await api(
+      '/state'
+    );
+
+
+  if (
+    response.ok
+  ){
+
+    state =
+      response.data;
+
+
+    render();
+
+  }
+
+
+  connect();
+
+})();
+
+</script>
+
+</body>
+
+</html>
