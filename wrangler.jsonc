@@ -3,7 +3,17 @@
 
   "compatibility_date": "2026-07-15",
 
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+
   "main": "src/index.js",
+
+  "vars": {
+    "VAPID_PUBLIC_KEY": "BCYQQ3Mmr7OtngWmq6br1NHxhi1N-ubTMmeWGnYbraeaHFIr2dae5-CAEJYri-1wJ4-6gG3wL_oSZI9XTLPbgxs",
+
+    "VAPID_SUBJECT": "mailto:ontheroadrivein@gmail.com"
+  },
 
   "assets": {
     "directory": "./dist",
