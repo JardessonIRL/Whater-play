@@ -1,21 +1,13 @@
 import webpush from "web-push";
 
-
 export class ScoreRoom {
-
   constructor(state, env) {
     this.state = state;
     this.env = env;
     this.sockets = new Set();
   }
 
-
-  // =====================================================
-  // MAIN SCORE DATA
-  // =====================================================
-
   async getData() {
-
     const saved =
       await this.state.storage.get(
         'data'
@@ -26,7 +18,6 @@ export class ScoreRoom {
     }
 
     const initial = {
-
       players: [
         {
           id: 'p1',
@@ -39,7 +30,6 @@ export class ScoreRoom {
       ],
 
       today: {
-
         date:
           this.todayKey(),
 
@@ -62,52 +52,33 @@ export class ScoreRoom {
     return initial;
   }
 
-
-  // =====================================================
-  // PUSH SUBSCRIPTIONS
-  // =====================================================
-
   async getPushSubscriptions() {
-
     return (
       await this.state.storage.get(
         'pushSubscriptions'
       )
     ) || [];
-
   }
-
 
   async savePushSubscriptions(
     subscriptions
   ) {
-
     await this.state.storage.put(
       'pushSubscriptions',
       subscriptions
     );
-
   }
 
-
-  // =====================================================
-  // DATE - IRELAND
-  // =====================================================
-
   todayKey() {
-
     return new Intl.DateTimeFormat(
       'en-CA',
       {
         timeZone:
           'Europe/Dublin',
-
         year:
           'numeric',
-
         month:
           '2-digit',
-
         day:
           '2-digit'
       }
@@ -116,57 +87,41 @@ export class ScoreRoom {
     );
   }
 
-
-  // =====================================================
-  // AUTOMATIC DAY CHANGE
-  // =====================================================
-
   async normalizeDay(
     data
   ) {
-
     const today =
       this.todayKey();
-
 
     if (
       data.today.date !==
       today
     ) {
-
       if (
         (
-          data.today.scores.p1 ||
+          data.today.scores.p1
+          ||
           0
         ) > 0
-
         ||
-
         (
-          data.today.scores.p2 ||
+          data.today.scores.p2
+          ||
           0
         ) > 0
-
         ||
-
         data.today.events.length
       ) {
-
         data.history.push({
-
           ...data.today,
 
           closedAt:
             new Date()
               .toISOString()
-
         });
-
       }
 
-
       data.today = {
-
         date:
           today,
 
@@ -176,87 +131,60 @@ export class ScoreRoom {
         },
 
         events: []
-
       };
-
 
       await this.state.storage.put(
         'data',
         data
       );
-
     }
-
 
     return data;
   }
 
-
-  // =====================================================
-  // WEBSOCKET BROADCAST
-  // =====================================================
-
   broadcast(
     payload
   ) {
-
     const text =
       JSON.stringify(
         payload
       );
-
 
     for (
       const ws
       of
       this.sockets
     ) {
-
       try {
-
         ws.send(
           text
         );
-
       }
-
       catch (_) {
-
         this.sockets.delete(
           ws
         );
-
       }
-
     }
-
   }
-
-
-  // =====================================================
-  // PUSH NOTIFICATION
-  //
-  // Sends ONLY to the opponent.
-  // =====================================================
 
   async sendPushToOpponent(
     data,
     scoringPlayerId,
-    room
+    room,
+    points
   ) {
-
     if (
-      !this.env.VAPID_PUBLIC_KEY ||
+      !this.env.VAPID_PUBLIC_KEY
+      ||
       !this.env.VAPID_PRIVATE_KEY
     ) {
-
       console.log(
         'Push skipped: VAPID configuration missing.'
       );
 
       return;
     }
-
 
     const opponentId =
       scoringPlayerId === 'p1'
@@ -265,7 +193,6 @@ export class ScoreRoom {
         :
         'p1';
 
-
     const scorer =
       data.players.find(
         player =>
@@ -273,24 +200,22 @@ export class ScoreRoom {
           scoringPlayerId
       );
 
-
     const p1 =
       data.players.find(
         player =>
-          player.id === 'p1'
+          player.id ===
+          'p1'
       );
-
 
     const p2 =
       data.players.find(
         player =>
-          player.id === 'p2'
+          player.id ===
+          'p2'
       );
-
 
     const subscriptions =
       await this.getPushSubscriptions();
-
 
     const opponentSubscriptions =
       subscriptions.filter(
@@ -299,24 +224,26 @@ export class ScoreRoom {
           opponentId
       );
 
-
     if (
       !opponentSubscriptions.length
     ) {
-
       return;
-
     }
 
+    const amount =
+      points === 2
+        ?
+        2
+        :
+        1;
 
     const payload =
       JSON.stringify({
-
         title:
           '💧 Water Play',
 
         body:
-          `${scorer?.name || 'Opponent'} marcou +1! `
+          `${scorer?.name || 'Opponent'} marcou +${amount}! `
           +
           `${p1?.name || 'Player 1'} `
           +
@@ -333,32 +260,22 @@ export class ScoreRoom {
 
         timestamp:
           Date.now()
-
       });
-
 
     const deadEndpoints =
       new Set();
-
 
     for (
       const entry
       of
       opponentSubscriptions
     ) {
-
       try {
-
         await webpush.sendNotification(
-
           entry.subscription,
-
           payload,
-
           {
-
             vapidDetails: {
-
               subject:
                 this.env.VAPID_SUBJECT
                 ||
@@ -369,7 +286,6 @@ export class ScoreRoom {
 
               privateKey:
                 this.env.VAPID_PRIVATE_KEY
-
             },
 
             TTL:
@@ -377,49 +293,36 @@ export class ScoreRoom {
 
             urgency:
               'high'
-
           }
-
         );
-
       }
 
       catch (err) {
-
         console.error(
           'Push error:',
           err
         );
-
 
         const status =
           err?.statusCode
           ||
           err?.status;
 
-
-        // Push subscription expired or removed.
         if (
-          status === 404 ||
+          status === 404
+          ||
           status === 410
         ) {
-
           deadEndpoints.add(
             entry.subscription.endpoint
           );
-
         }
-
       }
-
     }
 
-
-    // Remove dead subscriptions automatically.
     if (
       deadEndpoints.size
     ) {
-
       const cleaned =
         subscriptions.filter(
           entry =>
@@ -428,29 +331,19 @@ export class ScoreRoom {
             )
         );
 
-
       await this.savePushSubscriptions(
         cleaned
       );
-
     }
-
   }
-
-
-  // =====================================================
-  // DURABLE OBJECT REQUESTS
-  // =====================================================
 
   async fetch(
     request
   ) {
-
     const url =
       new URL(
         request.url
       );
-
 
     const room =
       url.searchParams.get(
@@ -459,35 +352,28 @@ export class ScoreRoom {
       ||
       'default-room';
 
-
-    // ===================================================
+    // =========================================
     // WEBSOCKET
-    // ===================================================
+    // =========================================
 
     if (
       url.pathname ===
       '/ws'
     ) {
-
       const pair =
         new WebSocketPair();
-
 
       const client =
         pair[0];
 
-
       const server =
         pair[1];
 
-
       server.accept();
-
 
       this.sockets.add(
         server
       );
-
 
       server.addEventListener(
         'close',
@@ -497,7 +383,6 @@ export class ScoreRoom {
           )
       );
 
-
       server.addEventListener(
         'error',
         () =>
@@ -506,12 +391,10 @@ export class ScoreRoom {
           )
       );
 
-
       const data =
         await this.normalizeDay(
           await this.getData()
         );
-
 
       server.send(
         JSON.stringify({
@@ -521,7 +404,6 @@ export class ScoreRoom {
           data
         })
       );
-
 
       return new Response(
         null,
@@ -533,13 +415,11 @@ export class ScoreRoom {
             client
         }
       );
-
     }
 
-
-    // ===================================================
-    // GET STATE
-    // ===================================================
+    // =========================================
+    // STATE
+    // =========================================
 
     if (
       url.pathname ===
@@ -548,26 +428,20 @@ export class ScoreRoom {
       request.method ===
         'GET'
     ) {
-
       const data =
         await this.normalizeDay(
           await this.getData()
         );
 
-
       return Response.json({
-        ok:
-          true,
-
+        ok: true,
         data
       });
-
     }
 
-
-    // ===================================================
-    // GET VAPID PUBLIC KEY
-    // ===================================================
+    // =========================================
+    // PUSH PUBLIC KEY
+    // =========================================
 
     if (
       url.pathname ===
@@ -576,25 +450,19 @@ export class ScoreRoom {
       request.method ===
         'GET'
     ) {
-
       return Response.json({
-
-        ok:
-          true,
+        ok: true,
 
         publicKey:
           this.env.VAPID_PUBLIC_KEY
           ||
           ''
-
       });
-
     }
 
-
-    // ===================================================
-    // REGISTER PUSH SUBSCRIPTION
-    // ===================================================
+    // =========================================
+    // PUSH SUBSCRIBE
+    // =========================================
 
     if (
       url.pathname ===
@@ -603,10 +471,8 @@ export class ScoreRoom {
       request.method ===
         'POST'
     ) {
-
       const body =
         await request.json();
-
 
       if (
         ![
@@ -616,11 +482,9 @@ export class ScoreRoom {
           body.playerId
         )
       ) {
-
         return Response.json(
           {
-            ok:
-              false,
+            ok: false,
 
             error:
               'Invalid player'
@@ -630,19 +494,16 @@ export class ScoreRoom {
               400
           }
         );
-
       }
 
-
       if (
-        !body.subscription ||
+        !body.subscription
+        ||
         !body.subscription.endpoint
       ) {
-
         return Response.json(
           {
-            ok:
-              false,
+            ok: false,
 
             error:
               'Invalid push subscription'
@@ -652,30 +513,20 @@ export class ScoreRoom {
               400
           }
         );
-
       }
-
 
       let subscriptions =
         await this.getPushSubscriptions();
 
-
-      /*
-        Remove the same device first.
-
-        This allows a phone to switch
-        from Player 1 to Player 2 later.
-      */
       subscriptions =
         subscriptions.filter(
           entry =>
-            entry.subscription.endpoint !==
+            entry.subscription.endpoint
+            !==
             body.subscription.endpoint
         );
 
-
       subscriptions.push({
-
         playerId:
           body.playerId,
 
@@ -685,28 +536,20 @@ export class ScoreRoom {
         addedAt:
           new Date()
             .toISOString()
-
       });
-
 
       await this.savePushSubscriptions(
         subscriptions
       );
 
-
       return Response.json({
-
-        ok:
-          true
-
+        ok: true
       });
-
     }
 
-
-    // ===================================================
-    // REMOVE PUSH SUBSCRIPTION
-    // ===================================================
+    // =========================================
+    // PUSH UNSUBSCRIBE
+    // =========================================
 
     if (
       url.pathname ===
@@ -715,41 +558,35 @@ export class ScoreRoom {
       request.method ===
         'POST'
     ) {
-
       const body =
         await request.json();
-
 
       const subscriptions =
         await this.getPushSubscriptions();
 
-
       const cleaned =
         subscriptions.filter(
           entry =>
-            entry.subscription.endpoint !==
+            entry.subscription.endpoint
+            !==
             body.endpoint
         );
-
 
       await this.savePushSubscriptions(
         cleaned
       );
 
-
       return Response.json({
-
-        ok:
-          true
-
+        ok: true
       });
-
     }
 
-
-    // ===================================================
-    // +1 POINT
-    // ===================================================
+    // =========================================
+    // ADD POINTS
+    //
+    // Glass  = 1
+    // Bottle = 2
+    // =========================================
 
     if (
       url.pathname ===
@@ -758,10 +595,8 @@ export class ScoreRoom {
       request.method ===
         'POST'
     ) {
-
       const body =
         await request.json();
-
 
       if (
         ![
@@ -771,11 +606,9 @@ export class ScoreRoom {
           body.playerId
         )
       ) {
-
         return Response.json(
           {
-            ok:
-              false,
+            ok: false,
 
             error:
               'Invalid player'
@@ -785,15 +618,21 @@ export class ScoreRoom {
               400
           }
         );
-
       }
 
+      const points =
+        Number(
+          body.points
+        ) === 2
+          ?
+          2
+          :
+          1;
 
       const data =
         await this.normalizeDay(
           await this.getData()
         );
-
 
       data.today.scores[
         body.playerId
@@ -806,83 +645,66 @@ export class ScoreRoom {
           0
         )
         +
-        1;
-
+        points;
 
       data.today.events.push({
-
         id:
           crypto.randomUUID(),
 
         playerId:
           body.playerId,
 
+        points:
+          points,
+
         at:
           new Date()
             .toISOString()
-
       });
-
 
       await this.state.storage.put(
         'data',
         data
       );
 
-
-      // Instant update while the site is open.
       this.broadcast({
-
         type:
           'state',
 
         data
-
       });
 
-
-      /*
-        Native notification for the OTHER player.
-
-        We intentionally catch errors here so a
-        push problem can never prevent the point
-        itself from being saved.
-      */
       try {
-
         await this.sendPushToOpponent(
           data,
           body.playerId,
-          room
+          room,
+          points
         );
-
       }
 
       catch (err) {
-
         console.error(
           'Push notification failed:',
           err
         );
-
       }
 
-
       return Response.json({
+        ok: true,
 
-        ok:
-          true,
+        pointsAdded:
+          points,
 
         data
-
       });
-
     }
 
-
-    // ===================================================
-    // UNDO LAST POINT
-    // ===================================================
+    // =========================================
+    // UNDO
+    //
+    // Old events without "points" = 1 point.
+    // =========================================
 
     if (
       url.pathname ===
@@ -891,18 +713,25 @@ export class ScoreRoom {
       request.method ===
         'POST'
     ) {
-
       const data =
         await this.normalizeDay(
           await this.getData()
         );
 
-
       const last =
         data.today.events.pop();
 
-
-      if (last) {
+      if (
+        last
+      ) {
+        const pointsToRemove =
+          Number(
+            last.points
+          ) === 2
+            ?
+            2
+            :
+            1;
 
         data.today.scores[
           last.playerId
@@ -917,43 +746,32 @@ export class ScoreRoom {
               0
             )
             -
-            1
+            pointsToRemove
           );
-
 
         await this.state.storage.put(
           'data',
           data
         );
 
-
         this.broadcast({
-
           type:
             'state',
 
           data
-
         });
-
       }
 
-
       return Response.json({
-
-        ok:
-          true,
+        ok: true,
 
         data
-
       });
-
     }
 
-
-    // ===================================================
+    // =========================================
     // CLOSE DAY
-    // ===================================================
+    // =========================================
 
     if (
       url.pathname ===
@@ -962,26 +780,20 @@ export class ScoreRoom {
       request.method ===
         'POST'
     ) {
-
       const data =
         await this.normalizeDay(
           await this.getData()
         );
 
-
       data.history.push({
-
         ...data.today,
 
         closedAt:
           new Date()
             .toISOString()
-
       });
 
-
       data.today = {
-
         date:
           this.todayKey(),
 
@@ -991,41 +803,30 @@ export class ScoreRoom {
         },
 
         events: []
-
       };
-
 
       await this.state.storage.put(
         'data',
         data
       );
 
-
       this.broadcast({
-
         type:
           'state',
 
         data
-
       });
-
 
       return Response.json({
-
-        ok:
-          true,
+        ok: true,
 
         data
-
       });
-
     }
 
-
-    // ===================================================
-    // PLAYER NAMES
-    // ===================================================
+    // =========================================
+    // NAMES
+    // =========================================
 
     if (
       url.pathname ===
@@ -1034,16 +835,13 @@ export class ScoreRoom {
       request.method ===
         'POST'
     ) {
-
       const body =
         await request.json();
-
 
       const data =
         await this.normalizeDay(
           await this.getData()
         );
-
 
       if (
         typeof body.p1 ===
@@ -1051,7 +849,6 @@ export class ScoreRoom {
         &&
         body.p1.trim()
       ) {
-
         data.players[0].name =
           body.p1
             .trim()
@@ -1059,9 +856,7 @@ export class ScoreRoom {
               0,
               30
             );
-
       }
-
 
       if (
         typeof body.p2 ===
@@ -1069,7 +864,6 @@ export class ScoreRoom {
         &&
         body.p2.trim()
       ) {
-
         data.players[1].name =
           body.p2
             .trim()
@@ -1077,42 +871,30 @@ export class ScoreRoom {
               0,
               30
             );
-
       }
-
 
       await this.state.storage.put(
         'data',
         data
       );
 
-
       this.broadcast({
-
         type:
           'state',
 
         data
-
       });
-
 
       return Response.json({
-
-        ok:
-          true,
+        ok: true,
 
         data
-
       });
-
     }
-
 
     return Response.json(
       {
-        ok:
-          false,
+        ok: false,
 
         error:
           'Not found'
@@ -1122,35 +904,29 @@ export class ScoreRoom {
           404
       }
     );
-
   }
-
 }
 
 
-// =====================================================
+// =============================================
 // MAIN WORKER
-// =====================================================
+// =============================================
 
 export default {
-
   async fetch(
     request,
     env
   ) {
-
     const url =
       new URL(
         request.url
       );
-
 
     if (
       url.pathname.startsWith(
         '/api/'
       )
     ) {
-
       const room =
         url.searchParams.get(
           'room'
@@ -1158,13 +934,11 @@ export default {
         ||
         'default-room';
 
-
       const id =
         env.SCORE_ROOM
           .idFromName(
             room
           );
-
 
       const stub =
         env.SCORE_ROOM
@@ -1172,12 +946,10 @@ export default {
             id
           );
 
-
       const forward =
         new URL(
           request.url
         );
-
 
       forward.pathname =
         url.pathname.replace(
@@ -1187,23 +959,16 @@ export default {
         ||
         '/';
 
-
       return stub.fetch(
-
         new Request(
           forward.toString(),
           request
         )
-
       );
-
     }
-
 
     return env.ASSETS.fetch(
       request
     );
-
   }
-
 };
