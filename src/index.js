@@ -1510,4 +1510,4 @@ export default {
 
   }
 
-};
+}
