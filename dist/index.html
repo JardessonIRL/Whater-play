@@ -1639,3 +1639,1346 @@ function connect(){
 
 
 // =========================================
+// DATE
+// =========================================
+
+function fmtDate(
+  date
+){
+
+  try{
+
+    return new Date(
+      date
+      +
+      'T12:00:00'
+    )
+      .toLocaleDateString(
+        undefined,
+        {
+          weekday:
+            'long',
+
+          day:
+            'numeric',
+
+          month:
+            'short'
+        }
+      );
+
+  }
+
+  catch{
+
+    return date;
+
+  }
+
+}
+
+
+// =========================================
+// TOTALS
+// =========================================
+
+function totals(){
+
+  const days =
+    [
+      ...(
+        state?.history
+        ||
+        []
+      ),
+
+      state?.today
+
+    ]
+      .filter(
+        Boolean
+      );
+
+
+  let p1 =
+    0;
+
+  let p2 =
+    0;
+
+  let w1 =
+    0;
+
+  let w2 =
+    0;
+
+
+  for (
+    const day
+    of
+    days
+  ){
+
+    const a =
+      day.scores?.p1
+      ||
+      0;
+
+
+    const b =
+      day.scores?.p2
+      ||
+      0;
+
+
+    p1 +=
+      a;
+
+
+    p2 +=
+      b;
+
+
+    if (
+      day !==
+      state.today
+    ){
+
+      if (
+        a > b
+      ){
+
+        w1++;
+
+      }
+
+      else if (
+        b > a
+      ){
+
+        w2++;
+
+      }
+
+    }
+
+  }
+
+
+  return {
+    p1,
+    p2,
+    w1,
+    w2
+  };
+
+}
+
+
+// =========================================
+// RENDER
+// =========================================
+
+function render(){
+
+  if (
+    !state
+  ){
+
+    return;
+
+  }
+
+
+  const name1 =
+    state.players[0].name;
+
+
+  const name2 =
+    state.players[1].name;
+
+
+  $('p1name').textContent =
+    name1;
+
+
+  $('p2name').textContent =
+    name2;
+
+
+  $('p1score').textContent =
+    state.today.scores.p1;
+
+
+  $('p2score').textContent =
+    state.today.scores.p2;
+
+
+  $('todayDate').textContent =
+    fmtDate(
+      state.today.date
+    );
+
+
+  $('p1input').value =
+    name1;
+
+
+  $('p2input').value =
+    name2;
+
+
+  const last =
+    state.today.events[
+      state.today.events.length
+      -
+      1
+    ];
+
+
+  if (
+    last
+  ){
+
+    const lastName =
+      last.playerId ===
+        'p1'
+        ?
+        name1
+        :
+        name2;
+
+
+    const lastPoints =
+      Number(
+        last.points
+      )
+      ||
+      1;
+
+
+    $('lastPoint').textContent =
+      'Last: '
+      +
+      lastName
+      +
+      ' +'
+      +
+      lastPoints
+      +
+      ' · '
+      +
+      new Date(
+        last.at
+      )
+        .toLocaleTimeString(
+          [],
+          {
+            hour:
+              '2-digit',
+
+            minute:
+              '2-digit'
+          }
+        );
+
+  }
+
+  else{
+
+    $('lastPoint').textContent =
+      'No points yet today.';
+
+  }
+
+
+  const total =
+    totals();
+
+
+  $('p1total').textContent =
+    total.p1;
+
+
+  $('p2total').textContent =
+    total.p2;
+
+
+  $('p1wins').textContent =
+    total.w1;
+
+
+  $('p2wins').textContent =
+    total.w2;
+
+
+  $('p1totalLabel').textContent =
+    name1
+    +
+    ' total points';
+
+
+  $('p2totalLabel').textContent =
+    name2
+    +
+    ' total points';
+
+
+  $('p1winsLabel').textContent =
+    name1
+    +
+    ' days won';
+
+
+  $('p2winsLabel').textContent =
+    name2
+    +
+    ' days won';
+
+
+  renderHistory();
+
+
+  renderChart();
+
+}
+
+
+// =========================================
+// HISTORY
+// =========================================
+
+function renderHistory(){
+
+  const history =
+    [
+      ...(
+        state.history
+        ||
+        []
+      )
+    ]
+      .reverse();
+
+
+  $('historyList').innerHTML =
+    history.length
+      ?
+      ''
+      :
+      '<div class="room">No closed days yet.</div>';
+
+
+  for (
+    const day
+    of
+    history
+  ){
+
+    const p1 =
+      day.scores.p1
+      ||
+      0;
+
+
+    const p2 =
+      day.scores.p2
+      ||
+      0;
+
+
+    const winner =
+      p1 === p2
+        ?
+        'Tie'
+        :
+        (
+          p1 > p2
+            ?
+            state.players[0].name
+            :
+            state.players[1].name
+        );
+
+
+    const div =
+      document.createElement(
+        'div'
+      );
+
+
+    div.className =
+      'history-item';
+
+
+    div.innerHTML =
+      `
+        <div>
+
+          <b>
+            ${fmtDate(day.date)}
+          </b>
+
+          <div class="room">
+            Winner: ${winner}
+          </div>
+
+        </div>
+
+        <div>
+          <b>
+            ${p1} - ${p2}
+          </b>
+        </div>
+      `;
+
+
+    $('historyList')
+      .appendChild(
+        div
+      );
+
+  }
+
+}
+
+
+// =========================================
+// CHART DATA
+// =========================================
+
+function chartRows(){
+
+  const all =
+    [
+      ...(
+        state.history
+        ||
+        []
+      ),
+
+      state.today
+    ];
+
+
+  const now =
+    new Date();
+
+
+  if (
+    chartMode ===
+    'week'
+  ){
+
+    const cutoff =
+      new Date(
+        now
+      );
+
+
+    cutoff.setHours(
+      0,
+      0,
+      0,
+      0
+    );
+
+
+    cutoff.setDate(
+      cutoff.getDate()
+      -
+      6
+    );
+
+
+    return all
+
+      .filter(
+        day =>
+          new Date(
+            day.date
+            +
+            'T12:00:00'
+          )
+          >=
+          cutoff
+      )
+
+      .map(
+        day => ({
+
+          label:
+            new Date(
+              day.date
+              +
+              'T12:00:00'
+            )
+              .toLocaleDateString(
+                [],
+                {
+                  weekday:
+                    'short'
+                }
+              ),
+
+          p1:
+            day.scores.p1
+            ||
+            0,
+
+          p2:
+            day.scores.p2
+            ||
+            0
+
+        })
+      );
+
+  }
+
+
+  const map =
+    new Map();
+
+
+  for (
+    const day
+    of
+    all
+  ){
+
+    const key =
+      day.date.slice(
+        0,
+        7
+      );
+
+
+    if (
+      !map.has(
+        key
+      )
+    ){
+
+      map.set(
+        key,
+        {
+
+          label:
+            new Date(
+              key
+              +
+              '-01T12:00:00'
+            )
+              .toLocaleDateString(
+                [],
+                {
+                  month:
+                    'short'
+                }
+              ),
+
+          p1:
+            0,
+
+          p2:
+            0
+
+        }
+      );
+
+    }
+
+
+    const entry =
+      map.get(
+        key
+      );
+
+
+    entry.p1 +=
+      day.scores.p1
+      ||
+      0;
+
+
+    entry.p2 +=
+      day.scores.p2
+      ||
+      0;
+
+  }
+
+
+  return [
+    ...map.values()
+  ]
+    .slice(
+      -6
+    );
+
+}
+
+
+// =========================================
+// CHART
+// =========================================
+
+function renderChart(){
+
+  if (
+    !state
+    ||
+    !$('scoreChart')
+  ){
+
+    return;
+
+  }
+
+
+  const rows =
+    chartRows();
+
+
+  const data = {
+
+    labels:
+      rows.map(
+        row =>
+          row.label
+      ),
+
+
+    datasets:[
+
+      {
+
+        label:
+          state.players[0].name,
+
+        data:
+          rows.map(
+            row =>
+              row.p1
+          )
+
+      },
+
+
+      {
+
+        label:
+          state.players[1].name,
+
+        data:
+          rows.map(
+            row =>
+              row.p2
+          )
+
+      }
+
+    ]
+
+  };
+
+
+  if (
+    chart
+  ){
+
+    chart.destroy();
+
+  }
+
+
+  chart =
+    new Chart(
+
+      $('scoreChart'),
+
+      {
+
+        type:
+          'line',
+
+        data,
+
+        options:{
+
+          responsive:
+            true,
+
+          maintainAspectRatio:
+            false,
+
+          plugins:{
+
+            legend:{
+
+              labels:{
+
+                color:
+                  '#e2e8f0'
+
+              }
+
+            }
+
+          },
+
+          scales:{
+
+            x:{
+
+              ticks:{
+
+                color:
+                  '#94a3b8'
+
+              },
+
+              grid:{
+
+                color:
+                  '#24304a'
+
+              }
+
+            },
+
+            y:{
+
+              beginAtZero:
+                true,
+
+              ticks:{
+
+                precision:
+                  0,
+
+                color:
+                  '#94a3b8'
+
+              },
+
+              grid:{
+
+                color:
+                  '#24304a'
+
+              }
+
+            }
+
+          }
+
+        }
+
+      }
+
+    );
+
+}
+
+
+// =========================================
+// SCORE BUTTONS
+//
+// GLASS  = +1
+// BOTTLE = +2
+// =========================================
+
+document
+  .querySelectorAll(
+    '.add'
+  )
+  .forEach(
+    button => {
+
+      button.addEventListener(
+        'click',
+        async () => {
+
+          const playerId =
+            button.dataset.player;
+
+
+          const points =
+            Number(
+              button.dataset.points
+            ) === 2
+              ?
+              2
+              :
+              1;
+
+
+          button.disabled =
+            true;
+
+
+          try{
+
+            const result =
+              await api(
+                '/point',
+                {
+
+                  method:
+                    'POST',
+
+                  body:
+                    JSON.stringify({
+
+                      playerId:
+                        playerId,
+
+                      points:
+                        points
+
+                    })
+
+                }
+              );
+
+
+            if (
+              result.ok
+            ){
+
+              /*
+                Render immediately using
+                returned server state.
+
+                WebSocket will also update
+                both devices.
+              */
+              if (
+                result.data
+              ){
+
+                state =
+                  result.data;
+
+
+                render();
+
+              }
+
+
+              toast(
+                '+'
+                +
+                points
+              );
+
+            }
+
+            else{
+
+              console.error(
+                result
+              );
+
+
+              toast(
+                result.error
+                ||
+                'Could not add points'
+              );
+
+            }
+
+          }
+
+
+          catch(err){
+
+            console.error(
+              err
+            );
+
+
+            toast(
+              'Connection error'
+            );
+
+          }
+
+
+          finally{
+
+            button.disabled =
+              false;
+
+          }
+
+        }
+      );
+
+    }
+  );
+
+
+// =========================================
+// UNDO
+// =========================================
+
+$('undoBtn')
+  .addEventListener(
+    'click',
+    async () => {
+
+      try{
+
+        const result =
+          await api(
+            '/undo',
+            {
+              method:
+                'POST'
+            }
+          );
+
+
+        if (
+          result.ok
+        ){
+
+          if (
+            result.data
+          ){
+
+            state =
+              result.data;
+
+
+            render();
+
+          }
+
+
+          toast(
+            'Last score removed'
+          );
+
+        }
+
+        else{
+
+          toast(
+            result.error
+            ||
+            'Undo failed'
+          );
+
+        }
+
+      }
+
+      catch(err){
+
+        console.error(
+          err
+        );
+
+
+        toast(
+          'Connection error'
+        );
+
+      }
+
+    }
+  );
+
+
+// =========================================
+// CLOSE DAY
+// =========================================
+
+$('closeBtn')
+  .addEventListener(
+    'click',
+    async () => {
+
+      if (
+        !state
+      ){
+
+        return;
+
+      }
+
+
+      const confirmed =
+        confirm(
+
+          'Close today?\n'
+          +
+          state.players[0].name
+          +
+          ': '
+          +
+          state.today.scores.p1
+          +
+          '\n'
+          +
+          state.players[1].name
+          +
+          ': '
+          +
+          state.today.scores.p2
+
+        );
+
+
+      if (
+        !confirmed
+      ){
+
+        return;
+
+      }
+
+
+      try{
+
+        const result =
+          await api(
+            '/close-day',
+            {
+              method:
+                'POST'
+            }
+          );
+
+
+        if (
+          result.ok
+        ){
+
+          state =
+            result.data;
+
+
+          render();
+
+
+          toast(
+            'Day closed'
+          );
+
+        }
+
+      }
+
+      catch(err){
+
+        console.error(
+          err
+        );
+
+
+        toast(
+          'Connection error'
+        );
+
+      }
+
+    }
+  );
+
+
+// =========================================
+// SETTINGS
+// =========================================
+
+$('saveSettings')
+  .addEventListener(
+    'click',
+    async () => {
+
+      try{
+
+        const result =
+          await api(
+            '/settings',
+            {
+
+              method:
+                'POST',
+
+              body:
+                JSON.stringify({
+
+                  p1:
+                    $('p1input').value,
+
+                  p2:
+                    $('p2input').value
+
+                })
+
+            }
+          );
+
+
+        if (
+          result.ok
+        ){
+
+          state =
+            result.data;
+
+
+          render();
+
+
+          toast(
+            'Names saved'
+          );
+
+        }
+
+      }
+
+      catch(err){
+
+        console.error(
+          err
+        );
+
+
+        toast(
+          'Connection error'
+        );
+
+      }
+
+    }
+  );
+
+
+// =========================================
+// CHART SWITCH
+// =========================================
+
+$('weekBtn')
+  .addEventListener(
+    'click',
+    () => {
+
+      chartMode =
+        'week';
+
+
+      $('weekBtn')
+        .classList
+        .add(
+          'active'
+        );
+
+
+      $('monthBtn')
+        .classList
+        .remove(
+          'active'
+        );
+
+
+      renderChart();
+
+    }
+  );
+
+
+$('monthBtn')
+  .addEventListener(
+    'click',
+    () => {
+
+      chartMode =
+        'month';
+
+
+      $('monthBtn')
+        .classList
+        .add(
+          'active'
+        );
+
+
+      $('weekBtn')
+        .classList
+        .remove(
+          'active'
+        );
+
+
+      renderChart();
+
+    }
+  );
+
+
+// =========================================
+// NAVIGATION
+// =========================================
+
+document
+  .querySelectorAll(
+    '.nav button'
+  )
+  .forEach(
+    button => {
+
+      button.addEventListener(
+        'click',
+        () => {
+
+          document
+            .querySelectorAll(
+              '.nav button'
+            )
+            .forEach(
+              item =>
+                item
+                  .classList
+                  .remove(
+                    'active'
+                  )
+            );
+
+
+          button
+            .classList
+            .add(
+              'active'
+            );
+
+
+          document
+            .querySelectorAll(
+              '.view'
+            )
+            .forEach(
+              view =>
+                view
+                  .classList
+                  .remove(
+                    'active'
+                  )
+            );
+
+
+          const destination =
+            $(
+              button.dataset.view
+            );
+
+
+          if (
+            destination
+          ){
+
+            destination
+              .classList
+              .add(
+                'active'
+              );
+
+          }
+
+
+          if (
+            button.dataset.view ===
+            'charts'
+          ){
+
+            setTimeout(
+              renderChart,
+              50
+            );
+
+          }
+
+        }
+      );
+
+    }
+  );
+
+
+// =========================================
+// INITIAL LOAD
+// =========================================
+
+async function init(){
+
+  try{
+
+    const response =
+      await api(
+        '/state'
+      );
+
+
+    if (
+      response.ok
+    ){
+
+      state =
+        response.data;
+
+
+      render();
+
+    }
+
+    else{
+
+      $('conn').textContent =
+        'server error';
+
+    }
+
+  }
+
+  catch(err){
+
+    console.error(
+      err
+    );
+
+
+    $('conn').textContent =
+      'offline';
+
+  }
+
+
+  connect();
+
+}
+
+
+init();
+
+
+</script>
+
+
+<!--
+  Notification settings.
+  Keep this line because push-ui.js
+  adds the device/player notification section.
+-->
+<script src="/push-ui.js"></script>
+
+
+</body>
+
+</html>
