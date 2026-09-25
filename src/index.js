@@ -1,4 +1,4 @@
-import webpush from "web-push";
+import webpush from "./webpush.js";
 
 
 export class ScoreRoom {
@@ -888,6 +888,213 @@ export class ScoreRoom {
           true
 
       });
+
+    }
+
+
+    // =======================================
+    // TEST PUSH
+    //
+    // Sends a notification to this device's
+    // own subscription, to check the setup.
+    // =======================================
+
+    if (
+
+      url.pathname ===
+      '/test-push'
+
+      &&
+
+      request.method ===
+      'POST'
+
+    ) {
+
+
+      const body =
+        await request.json();
+
+
+      if (
+        !this.env.VAPID_PRIVATE_KEY
+      ) {
+
+        return Response.json(
+
+          {
+
+            ok:
+              false,
+
+
+            error:
+              'VAPID_PRIVATE_KEY secret is not configured on the server.'
+
+          },
+
+          {
+
+            status:
+              500
+
+          }
+
+        );
+
+      }
+
+
+      const subscriptions =
+        await this.getPushSubscriptions();
+
+
+      const entry =
+        subscriptions.find(
+
+          item =>
+            item.subscription.endpoint
+            ===
+            body.endpoint
+
+        );
+
+
+      if (
+        !entry
+      ) {
+
+        return Response.json(
+
+          {
+
+            ok:
+              false,
+
+
+            error:
+              'This device is not registered. Tap "Enable notifications" again.'
+
+          },
+
+          {
+
+            status:
+              404
+
+          }
+
+        );
+
+      }
+
+
+      try{
+
+
+        await webpush.sendNotification(
+
+          entry.subscription,
+
+          JSON.stringify({
+
+            title:
+              '💧 Water Play',
+
+
+            body:
+              'Test notification ✓',
+
+
+            url:
+              '/?room='
+              +
+              encodeURIComponent(
+                room
+              ),
+
+
+            timestamp:
+              Date.now()
+
+          }),
+
+          {
+
+            vapidDetails:{
+
+              subject:
+                this.env.VAPID_SUBJECT
+                ||
+                'mailto:ontheroadrivein@gmail.com',
+
+
+              publicKey:
+                this.env.VAPID_PUBLIC_KEY,
+
+
+              privateKey:
+                this.env.VAPID_PRIVATE_KEY
+
+            },
+
+
+            TTL:
+              60,
+
+
+            urgency:
+              'high'
+
+          }
+
+        );
+
+
+        return Response.json({
+
+          ok:
+            true,
+
+
+          playerId:
+            entry.playerId
+
+        });
+
+      }
+
+
+      catch(err){
+
+
+        return Response.json(
+
+          {
+
+            ok:
+              false,
+
+
+            error:
+              err?.message
+              ||
+              String(
+                err
+              )
+
+          },
+
+          {
+
+            status:
+              502
+
+          }
+
+        );
+
+      }
 
     }
 
