@@ -137,18 +137,34 @@ async function vapidAuthorization(
     crv: 'P-256',
     x: bytesToBase64Url(publicBytes.slice(1, 33)),
     y: bytesToBase64Url(publicBytes.slice(33, 65)),
-    d: privateKey.trim(),
+    d: privateKey.replace(/["'\s]/g, ''),
     ext: true
   };
 
-  const signingKey =
-    await crypto.subtle.importKey(
-      'jwk',
-      jwk,
-      { name: 'ECDSA', namedCurve: 'P-256' },
-      false,
-      ['sign']
+  let signingKey;
+
+  try {
+
+    signingKey =
+      await crypto.subtle.importKey(
+        'jwk',
+        jwk,
+        { name: 'ECDSA', namedCurve: 'P-256' },
+        false,
+        ['sign']
+      );
+
+  }
+
+  catch (err) {
+
+    throw new Error(
+      'VAPID_PRIVATE_KEY does not match VAPID_PUBLIC_KEY ' +
+      `(server public key starts with ${publicKey.slice(0, 10)}…, ` +
+      `private key has ${jwk.d.length} characters, expected 43).`
     );
+
+  }
 
   const header =
     bytesToBase64Url(
