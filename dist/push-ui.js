@@ -483,6 +483,109 @@
   }
 
 
+  async function sendTestNotification(
+    status,
+    button
+  ) {
+
+    button.disabled =
+      true;
+
+
+    try {
+
+      const subscription =
+        await getCurrentSubscription();
+
+
+      if (
+        !subscription
+      ) {
+
+        throw new Error(
+          'Notifications are not enabled on this device yet.'
+        );
+
+      }
+
+
+      const response =
+        await fetch(
+          apiUrl(
+            '/test-push'
+          ),
+          {
+
+            method:
+              'POST',
+
+            headers: {
+
+              'content-type':
+                'application/json'
+
+            },
+
+            body:
+              JSON.stringify({
+
+                endpoint:
+                  subscription.endpoint
+
+              })
+
+          }
+        );
+
+
+      const result =
+        await response.json();
+
+
+      if (
+        !response.ok
+        ||
+        !result.ok
+      ) {
+
+        throw new Error(
+          result.error
+          ||
+          'Test notification failed.'
+        );
+
+      }
+
+
+      status.textContent =
+        '✓ Test sent. It should arrive in a few seconds.';
+
+    }
+
+    catch (err) {
+
+      console.error(
+        err
+      );
+
+
+      status.textContent =
+        err.message
+        ||
+        'Test notification failed.';
+
+    }
+
+    finally {
+
+      button.disabled =
+        false;
+
+    }
+
+  }
+
+
   async function buildPushSettings() {
 
     const settingsCard =
@@ -720,6 +823,37 @@
     );
 
 
+    const testButton =
+      document.createElement(
+        'button'
+      );
+
+
+    testButton.className =
+      'btn';
+
+
+    testButton.style.cssText =
+      `
+        width:100%;
+        margin-top:10px;
+      `;
+
+
+    testButton.textContent =
+      'Send test notification';
+
+
+    testButton.addEventListener(
+      'click',
+      () =>
+        sendTestNotification(
+          status,
+          testButton
+        )
+    );
+
+
     wrapper.append(
 
       title,
@@ -731,6 +865,8 @@
       select,
 
       button,
+
+      testButton,
 
       status
 
