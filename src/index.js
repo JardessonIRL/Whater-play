@@ -521,6 +521,11 @@ export class ScoreRoom {
         if (
 
           status ===
+          403
+
+          ||
+
+          status ===
           404
 
           ||
@@ -857,6 +862,12 @@ export class ScoreRoom {
             !==
             body.subscription.endpoint
 
+            &&
+
+            entry.subscription.endpoint
+            !==
+            body.oldEndpoint
+
         );
 
 
@@ -972,6 +983,10 @@ export class ScoreRoom {
               false,
 
 
+            resubscribe:
+              true,
+
+
             error:
               'This device is not registered. Tap "Enable notifications" again.'
 
@@ -1068,12 +1083,51 @@ export class ScoreRoom {
       catch(err){
 
 
+        const pushStatus =
+          err?.statusCode;
+
+
+        const stale =
+          [
+            403,
+            404,
+            410
+          ]
+            .includes(
+              pushStatus
+            );
+
+
+        if (
+          stale
+        ) {
+
+          await this.savePushSubscriptions(
+
+            subscriptions.filter(
+
+              item =>
+                item.subscription.endpoint
+                !==
+                body.endpoint
+
+            )
+
+          );
+
+        }
+
+
         return Response.json(
 
           {
 
             ok:
               false,
+
+
+            resubscribe:
+              stale,
 
 
             error:

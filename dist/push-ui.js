@@ -309,6 +309,178 @@
   }
 
 
+  /*
+    Subscribes this device with the server's
+    current VAPID key and saves it on the server.
+
+    force = always drop the existing browser
+    subscription and create a fresh one.
+  */
+  async function subscribeDevice(
+    playerId,
+    force
+  ) {
+
+    const keyResponse =
+      await fetch(
+        apiUrl(
+          '/push-key'
+        )
+      );
+
+
+    const keyData =
+      await keyResponse.json();
+
+
+    if (
+      !keyData.publicKey
+    ) {
+
+      throw new Error(
+        'VAPID public key is not configured.'
+      );
+
+    }
+
+
+    const registration =
+      await navigator
+        .serviceWorker
+        .ready;
+
+
+    let subscription =
+      await registration
+        .pushManager
+        .getSubscription();
+
+
+    let oldEndpoint =
+      null;
+
+
+    /*
+      If the VAPID key changed, the old
+      subscription can no longer receive
+      pushes. Drop it and subscribe again.
+    */
+    if (
+      subscription
+      &&
+      (
+        force
+        ||
+        !sameKey(
+          subscription.options
+            ?.applicationServerKey,
+          keyData.publicKey
+        )
+      )
+    ) {
+
+      oldEndpoint =
+        subscription.endpoint;
+
+
+      await subscription
+        .unsubscribe()
+        .catch(
+          () => null
+        );
+
+
+      subscription =
+        null;
+
+    }
+
+
+    if (
+      !subscription
+    ) {
+
+      subscription =
+        await registration
+          .pushManager
+          .subscribe({
+
+            userVisibleOnly:
+              true,
+
+            applicationServerKey:
+              urlBase64ToUint8Array(
+                keyData.publicKey
+              )
+
+          });
+
+    }
+
+
+    const response =
+      await fetch(
+        apiUrl(
+          '/subscribe'
+        ),
+        {
+
+          method:
+            'POST',
+
+          headers: {
+
+            'content-type':
+              'application/json'
+
+          },
+
+          body:
+            JSON.stringify({
+
+              playerId,
+
+              oldEndpoint,
+
+              subscription:
+                subscription.toJSON()
+
+            })
+
+        }
+      );
+
+
+    const result =
+      await response.json();
+
+
+    if (
+      !response.ok
+      ||
+      !result.ok
+    ) {
+
+      throw new Error(
+        result.error
+        ||
+        'Could not save notification subscription.'
+      );
+
+    }
+
+
+    localStorage.setItem(
+      STORAGE_PLAYER,
+      playerId
+    );
+
+
+    return subscription;
+
+  }
+
+
   async function enableNotifications(
     playerId,
     status,
@@ -373,144 +545,9 @@
       }
 
 
-      const keyResponse =
-        await fetch(
-          apiUrl(
-            '/push-key'
-          )
-        );
-
-
-      const keyData =
-        await keyResponse.json();
-
-
-      if (
-        !keyData.publicKey
-      ) {
-
-        throw new Error(
-          'VAPID public key is not configured.'
-        );
-
-      }
-
-
-      const registration =
-        await navigator
-          .serviceWorker
-          .ready;
-
-
-      let subscription =
-        await registration
-          .pushManager
-          .getSubscription();
-
-
-      /*
-        If the VAPID key changed, the old
-        subscription can no longer receive
-        pushes. Drop it and subscribe again.
-      */
-      if (
-        subscription
-        &&
-        !sameKey(
-          subscription.options
-            ?.applicationServerKey,
-          keyData.publicKey
-        )
-      ) {
-
-        await subscription
-          .unsubscribe()
-          .catch(
-            () => null
-          );
-
-
-        subscription =
-          null;
-
-      }
-
-
-      if (
-        !subscription
-      ) {
-
-        subscription =
-          await registration
-            .pushManager
-            .subscribe({
-
-              userVisibleOnly:
-                true,
-
-              applicationServerKey:
-                urlBase64ToUint8Array(
-                  keyData.publicKey
-                )
-
-            });
-
-      }
-
-
-      const response =
-        await fetch(
-          apiUrl(
-            '/subscribe'
-          ),
-          {
-
-            method:
-              'POST',
-
-            headers: {
-
-              'content-type':
-                'application/json'
-
-            },
-
-            body:
-              JSON.stringify({
-
-                playerId,
-
-                subscription:
-                  subscription.toJSON()
-
-              })
-
-          }
-        );
-
-
-      const result =
-        await response.json();
-
-
-      if (
-        !response.ok
-        ||
-        !result.ok
-      ) {
-
-        throw new Error(
-          result.error
-          ||
-          'Could not save notification subscription.'
-        );
-
-      }
-
-
-      localStorage.setItem(
-        STORAGE_PLAYER,
-        playerId
+      await subscribeDevice(
+        playerId,
+        true
       );
 
 
@@ -562,12 +599,20 @@
 
     try {
 
-      const subscription =
+      let subscription =
         await getCurrentSubscription();
+
+
+      const playerId =
+        localStorage.getItem(
+          STORAGE_PLAYER
+        );
 
 
       if (
         !subscription
+        ||
+        !playerId
       ) {
 
         throw new Error(
@@ -577,37 +622,85 @@
       }
 
 
-      const response =
-        await fetch(
-          apiUrl(
-            '/test-push'
-          ),
+      const sendTest =
+        async () => {
+
+          const response =
+            await fetch(
+              apiUrl(
+                '/test-push'
+              ),
+              {
+
+                method:
+                  'POST',
+
+                headers: {
+
+                  'content-type':
+                    'application/json'
+
+                },
+
+                body:
+                  JSON.stringify({
+
+                    endpoint:
+                      subscription.endpoint
+
+                  })
+
+              }
+            );
+
+
+          return {
+
+            response,
+
+            result:
+              await response.json()
+
+          };
+
+        };
+
+
+      let {
+        response,
+        result
+      } =
+        await sendTest();
+
+
+      /*
+        Subscription is stale (old key or
+        expired). Recreate it and try again.
+      */
+      if (
+        result.resubscribe
+      ) {
+
+        status.textContent =
+          'Renewing this device registration…';
+
+
+        subscription =
+          await subscribeDevice(
+            playerId,
+            true
+          );
+
+
+        (
           {
-
-            method:
-              'POST',
-
-            headers: {
-
-              'content-type':
-                'application/json'
-
-            },
-
-            body:
-              JSON.stringify({
-
-                endpoint:
-                  subscription.endpoint
-
-              })
-
-          }
+            response,
+            result
+          } =
+            await sendTest()
         );
 
-
-      const result =
-        await response.json();
+      }
 
 
       if (
@@ -957,6 +1050,41 @@
       console.log(
         err
       );
+
+    }
+
+
+    /*
+      Keep this device's subscription in sync
+      with the server key (e.g. after a key change).
+    */
+    const savedPlayer =
+      localStorage.getItem(
+        STORAGE_PLAYER
+      );
+
+
+    if (
+      savedPlayer
+      &&
+      'Notification'
+      in
+      window
+      &&
+      Notification.permission ===
+      'granted'
+    ) {
+
+      await subscribeDevice(
+        savedPlayer,
+        false
+      )
+        .catch(
+          err =>
+            console.error(
+              err
+            )
+        );
 
     }
 
