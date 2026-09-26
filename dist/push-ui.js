@@ -87,6 +87,46 @@
   }
 
 
+  function sameKey(
+    applicationServerKey,
+    publicKey
+  ) {
+
+    if (
+      !applicationServerKey
+    ) {
+
+      return true;
+
+    }
+
+
+    const current =
+      new Uint8Array(
+        applicationServerKey
+      );
+
+
+    const expected =
+      urlBase64ToUint8Array(
+        publicKey
+      );
+
+
+    return (
+      current.length ===
+      expected.length
+      &&
+      current.every(
+        (byte, index) =>
+          byte ===
+          expected[index]
+      )
+    );
+
+  }
+
+
   async function getPlayers() {
 
     try {
@@ -366,6 +406,34 @@
         await registration
           .pushManager
           .getSubscription();
+
+
+      /*
+        If the VAPID key changed, the old
+        subscription can no longer receive
+        pushes. Drop it and subscribe again.
+      */
+      if (
+        subscription
+        &&
+        !sameKey(
+          subscription.options
+            ?.applicationServerKey,
+          keyData.publicKey
+        )
+      ) {
+
+        await subscription
+          .unsubscribe()
+          .catch(
+            () => null
+          );
+
+
+        subscription =
+          null;
+
+      }
 
 
       if (

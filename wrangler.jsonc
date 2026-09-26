@@ -10,7 +10,7 @@
   "main": "src/index.js",
 
   "vars": {
-    "VAPID_PUBLIC_KEY": "BCYQQ3Mmr7OtngWmq6br1NHxhi1N-ubTMmeWGnYbraeaHFIr2dae5-CAEJYri-1wJ4-6gG3wL_oSZI9XTLPbgxs",
+    "VAPID_PUBLIC_KEY": "BJ7sJ_-NayEquuSU2zcLQEi2uncZ5CwLbb9cmeMMjAr9NRGHyqLMNeJMuVQf2obOP-QTqnDeHzJyco7cpIQVTtM",
 
     "VAPID_SUBJECT": "mailto:ontheroadrivein@gmail.com"
   },
