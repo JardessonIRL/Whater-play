@@ -49,10 +49,11 @@ self.addEventListener(
         'New point!',
 
       icon:
-        '/icon-192.png',
+        '/notification-icon.png',
 
+      // Android status bar: white silhouette on transparent
       badge:
-        '/icon-192.png',
+        '/notification-badge.png',
 
       data: {
 
