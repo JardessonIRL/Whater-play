@@ -1,5 +1,10 @@
 import webpush from "./webpush.js";
 
+import {
+  generateRoomCode,
+  handleRoomAccess
+} from "./room-auth.js";
+
 
 export class ScoreRoom {
 
@@ -25,6 +30,83 @@ export class ScoreRoom {
   // =========================================
   // SCORE DATA
   // =========================================
+
+  initialData(
+    p1Name,
+    p2Name
+  ) {
+
+    const clean =
+      (value, fallback) =>
+        typeof value === 'string'
+        &&
+        value.trim()
+          ?
+          value.trim().slice(0, 30)
+          :
+          fallback;
+
+
+    return {
+
+      players:[
+
+        {
+          id:
+            'p1',
+
+          name:
+            clean(
+              p1Name,
+              'Player 1'
+            )
+        },
+
+
+        {
+          id:
+            'p2',
+
+          name:
+            clean(
+              p2Name,
+              'Player 2'
+            )
+        }
+
+      ],
+
+
+      today:{
+
+        date:
+          this.todayKey(),
+
+
+        scores:{
+
+          p1:
+            0,
+
+          p2:
+            0
+
+        },
+
+
+        events:
+          []
+
+      },
+
+
+      history:
+        []
+
+    };
+
+  }
+
 
   async getData() {
 
@@ -593,6 +675,54 @@ export class ScoreRoom {
       )
       ||
       'default-room';
+
+
+    // =======================================
+    // ROOM EXISTS + PIN
+    // =======================================
+
+    const denied =
+      await handleRoomAccess(
+
+        this.state.storage,
+
+        url,
+
+        request,
+
+        (p1, p2) =>
+          this.initialData(
+            p1,
+            p2
+          )
+
+      );
+
+
+    if (
+      denied
+    ) {
+
+
+      // Read the unused body so the stream closes cleanly
+      if (
+        request.body
+        &&
+        !request.bodyUsed
+      ) {
+
+        await request
+          .arrayBuffer()
+          .catch(
+            () => null
+          );
+
+      }
+
+
+      return denied;
+
+    }
 
 
     // =======================================
@@ -1709,6 +1839,156 @@ export default {
       );
 
 
+    // =======================================
+    // CREATE ROOM
+    //
+    // The server picks the code, so two rooms
+    // can never share one. On a collision the
+    // room object answers 409 and we retry.
+    // =======================================
+
+    if (
+
+      url.pathname ===
+      '/api/rooms'
+
+      &&
+
+      request.method ===
+      'POST'
+
+    ) {
+
+
+      const body =
+        await request
+          .json()
+          .catch(
+            () => ({})
+          );
+
+
+      for (
+        let attempt = 0;
+        attempt < 8;
+        attempt++
+      ) {
+
+
+        const code =
+          generateRoomCode();
+
+
+        const stub =
+          env.SCORE_ROOM.get(
+            env.SCORE_ROOM.idFromName(
+              code
+            )
+          );
+
+
+        const response =
+          await stub.fetch(
+
+            'https://room/create?room='
+            +
+            encodeURIComponent(
+              code
+            ),
+
+            {
+
+              method:
+                'POST',
+
+              headers:{
+                'content-type':
+                  'application/json'
+              },
+
+              body:
+                JSON.stringify({
+
+                  pin:
+                    body.pin,
+
+                  p1:
+                    body.p1,
+
+                  p2:
+                    body.p2
+
+                })
+
+            }
+
+          );
+
+
+        if (
+          response.status ===
+          409
+        ) {
+
+          continue;
+
+        }
+
+
+        const result =
+          await response.json();
+
+
+        return Response.json(
+
+          result.ok
+            ?
+            {
+              ok:
+                true,
+
+              room:
+                code
+            }
+            :
+            result,
+
+          {
+
+            status:
+              response.status
+
+          }
+
+        );
+
+      }
+
+
+      return Response.json(
+
+        {
+
+          ok:
+            false,
+
+          error:
+            'Could not create a room. Try again.'
+
+        },
+
+        {
+
+          status:
+            503
+
+        }
+
+      );
+
+    }
+
+
     if (
       url.pathname.startsWith(
         '/api/'
@@ -1717,11 +1997,59 @@ export default {
 
 
       const room =
-        url.searchParams.get(
-          'room'
+        (
+          url.searchParams.get(
+            'room'
+          )
+          ||
+          ''
         )
+          .trim();
+
+
+      /*
+        Rooms are only created through
+        POST /api/rooms (server-chosen code).
+      */
+      if (
+
+        !room
+
         ||
-        'default-room';
+
+        room.length >
+        64
+
+        ||
+
+        url.pathname ===
+        '/api/create'
+
+      ) {
+
+
+        return Response.json(
+
+          {
+
+            ok:
+              false,
+
+            error:
+              'room_not_found'
+
+          },
+
+          {
+
+            status:
+              404
+
+          }
+
+        );
+
+      }
 
 
       const id =

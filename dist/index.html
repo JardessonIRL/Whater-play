@@ -1335,6 +1335,9 @@ body{
 ></div>
 
 
+<script src="/room-gate.js"></script>
+
+
 <script>
 
 
@@ -1348,22 +1351,46 @@ const params =
   );
 
 
+/*
+  No default room: a phone without a saved
+  room sees the welcome screen (room-gate.js).
+*/
 const room =
-  params.get(
-    'room'
+  (
+    params.get(
+      'room'
+    )
+    ||
+    localStorage.getItem(
+      'duel_room'
+    )
+    ||
+    ''
   )
-  ||
-  localStorage.getItem(
-    'duel_room'
-  )
-  ||
-  'JarAna';
+    .trim();
 
 
-localStorage.setItem(
-  'duel_room',
+if (
   room
-);
+){
+
+  localStorage.setItem(
+    'duel_room',
+    room
+  );
+
+}
+
+
+const roomPin =
+  () =>
+    RoomGate.getPin(
+      room
+    );
+
+
+let authorized =
+  false;
 
 
 document
@@ -1371,9 +1398,13 @@ document
     'roomLabel'
   )
   .textContent =
-    'Room: '
-    +
-    room;
+    room
+      ?
+      'Room: '
+      +
+      room
+      :
+      '';
 
 
 // =========================================
@@ -1479,6 +1510,9 @@ async function api(
           'content-type':
             'application/json',
 
+          'x-room-pin':
+            roomPin(),
+
           ...(
             options.headers
             ||
@@ -1562,6 +1596,12 @@ function connect(){
       encodeURIComponent(
         room
       )
+      +
+      '&pin='
+      +
+      encodeURIComponent(
+        roomPin()
+      )
 
     );
 
@@ -1582,8 +1622,17 @@ function connect(){
         'reconnecting…';
 
 
+      /*
+        If the PIN stopped working (e.g. it was
+        changed), re-check instead of looping.
+      */
       setTimeout(
-        connect,
+        () =>
+          authorized
+            ?
+            init()
+            :
+            null,
         1200
       );
 
@@ -2918,32 +2967,28 @@ document
 
 async function init(){
 
+  if (
+    !room
+  ){
+
+    RoomGate.show(
+      'welcome'
+    );
+
+    return;
+
+  }
+
+
+  let response;
+
+
   try{
 
-    const response =
+    response =
       await api(
         '/state'
       );
-
-
-    if (
-      response.ok
-    ){
-
-      state =
-        response.data;
-
-
-      render();
-
-    }
-
-    else{
-
-      $('conn').textContent =
-        'server error';
-
-    }
 
   }
 
@@ -2957,10 +3002,98 @@ async function init(){
     $('conn').textContent =
       'offline';
 
+
+    setTimeout(
+      init,
+      3000
+    );
+
+    return;
+
   }
 
 
-  connect();
+  if (
+    response.ok
+  ){
+
+    authorized =
+      true;
+
+
+    state =
+      response.data;
+
+
+    render();
+
+
+    connect();
+
+    return;
+
+  }
+
+
+  authorized =
+    false;
+
+
+  switch (
+    response.error
+  ){
+
+    case 'room_not_found':
+
+      RoomGate.show(
+        'notFound',
+        room
+      );
+
+      return;
+
+
+    case 'pin_not_set':
+
+      RoomGate.show(
+        'setPin',
+        room
+      );
+
+      return;
+
+
+    case 'pin_required':
+
+      RoomGate.show(
+        'pin',
+        room
+      );
+
+      return;
+
+
+    case 'invalid_pin':
+
+      RoomGate.show(
+        'pin',
+        room,
+        'The room PIN changed or is wrong. Enter it again.'
+      );
+
+      return;
+
+
+    default:
+
+      // e.g. too many wrong PINs
+      RoomGate.show(
+        'pin',
+        room,
+        response.error
+      );
+
+  }
 
 }
 
