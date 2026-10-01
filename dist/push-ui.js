@@ -1,6 +1,6 @@
 (() => {
 
-  const STORAGE_PLAYER =
+  const LEGACY_STORAGE_PLAYER =
     'water_play_device_player';
 
 
@@ -11,13 +11,78 @@
 
 
   const room =
-    params.get('room')
-    ||
-    localStorage.getItem(
-      'duel_room'
+    (
+      params.get('room')
+      ||
+      localStorage.getItem(
+        'duel_room'
+      )
+      ||
+      ''
     )
-    ||
-    'JarAna';
+      .trim();
+
+
+  /*
+    "This device belongs to" is saved per room.
+    The old global value is carried over once,
+    so existing phones keep their choice.
+  */
+  const STORAGE_PLAYER =
+    RoomGate.playerKey(
+      room
+    );
+
+
+  if (
+    room
+    &&
+    !localStorage.getItem(
+      STORAGE_PLAYER
+    )
+    &&
+    localStorage.getItem(
+      LEGACY_STORAGE_PLAYER
+    )
+  ) {
+
+    localStorage.setItem(
+      STORAGE_PLAYER,
+      localStorage.getItem(
+        LEGACY_STORAGE_PLAYER
+      )
+    );
+
+  }
+
+
+  // Adds the room PIN to every request
+  function apiFetch(
+    url,
+    options = {}
+  ) {
+
+    return fetch(
+      url,
+      {
+        ...options,
+
+        headers: {
+          ...(
+            options.headers
+            ||
+            {}
+          ),
+
+          'x-room-pin':
+            RoomGate.getPin(
+              room
+            )
+        }
+      }
+    );
+
+  }
 
 
   function apiUrl(path) {
@@ -132,7 +197,7 @@
     try {
 
       const response =
-        await fetch(
+        await apiFetch(
           apiUrl(
             '/state'
           )
@@ -322,7 +387,7 @@
   ) {
 
     const keyResponse =
-      await fetch(
+      await apiFetch(
         apiUrl(
           '/push-key'
         )
@@ -419,7 +484,7 @@
 
 
     const response =
-      await fetch(
+      await apiFetch(
         apiUrl(
           '/subscribe'
         ),
@@ -626,7 +691,7 @@
         async () => {
 
           const response =
-            await fetch(
+            await apiFetch(
               apiUrl(
                 '/test-push'
               ),
@@ -1092,6 +1157,16 @@
     await updateStatus(
       status
     );
+
+  }
+
+
+  // No room yet: the welcome screen is showing
+  if (
+    !room
+  ) {
+
+    return;
 
   }
 
