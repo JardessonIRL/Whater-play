@@ -133,6 +133,11 @@ function sameMovie(a, b){
   return !a.y || !b.y || a.y === b.y;
 }
 
+function imdbLink(m){
+  const id = /^imdb:(tt\d+)$/.exec(m.k || '');
+  return id ? ` · <a href="https://www.imdb.com/title/${id[1]}/" target="_blank" rel="noopener">IMDb ↗</a>` : '';
+}
+
 function posterHtml(m){
   return m.p ? `<img class="poster" src="${esc(m.p)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<div class="poster">🎞️</div>`;
 }
@@ -346,7 +351,7 @@ function renderMine(){
   $app.innerHTML = header() + `
     <div class="card stack">
       <h2>Adicionar filme</h2>
-      <input class="field" id="search" placeholder="Buscar filme…" autocomplete="off" enterkeyhint="search">
+      <input class="field" id="search" placeholder="Buscar filme no IMDb…" autocomplete="off" enterkeyhint="search">
       <div class="status" id="searchStatus"></div>
       <div class="list results" id="results"></div>
     </div>
@@ -370,7 +375,7 @@ function drawMineList(){
   const list = filtered(sorted(S.mine));
   el.innerHTML = list.length ? list.map(m => `
     <div class="movie">${posterHtml(m)}
-      <div class="info"><div class="name">${esc(m.t)}</div><div class="meta">${m.y || ''}</div></div>
+      <div class="info"><div class="name">${esc(m.t)}</div><div class="meta">${m.y || ''}${imdbLink(m)}</div></div>
       <button class="btn danger small" data-del="${esc(m.k)}" title="Remover">✕</button>
     </div>`).join('') : `<div class="empty">${S.mine.length ? 'Nada encontrado.' : 'Nenhum filme ainda. Busque acima e marque os que você já viu!'}</div>`;
   el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
@@ -395,7 +400,44 @@ function addMine(movie){
   return true;
 }
 
-// Search uses the free iTunes catalog straight from the browser (no Worker cost).
+// Search uses IMDb's suggestion list (same as the imdb.com search box).
+// Direct from the browser first (no Worker cost); falls back to /api/imdb.
+const IMDB_TYPES = {movie: 'Filme', tvMovie: 'Filme de TV', short: 'Curta', video: 'Vídeo'};
+let imdbViaProxy = sessionStorage.getItem('javi:imdbProxy') === '1';
+
+function imdbUrl(q){
+  const clean = q.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  const first = /[a-z0-9]/.test(clean[0]) ? clean[0] : 'x';
+  return `https://v2.sg.media-imdb.com/suggestion/${first}/${encodeURIComponent(clean)}.json`;
+}
+function imdbPoster(url){
+  // Ask IMDb's image server for a small 200px-wide version.
+  return url ? url.replace(/\._V1_.*\.jpg$|\.jpg$/, '._V1_QL75_UX200_.jpg') : undefined;
+}
+async function imdbFetch(q){
+  if (!imdbViaProxy) {
+    try {
+      const r = await fetch(imdbUrl(q));
+      if (r.ok) return (await r.json()).d || [];
+    } catch {}
+    imdbViaProxy = true;
+    try { sessionStorage.setItem('javi:imdbProxy', '1'); } catch {}
+  }
+  const r = await fetch('/api/imdb?q=' + encodeURIComponent(q));
+  return r.ok ? (await r.json()).d || [] : [];
+}
+async function searchImdb(q){
+  const d = await imdbFetch(q);
+  return d.filter(r => /^tt\d+$/.test(r.id) && IMDB_TYPES[r.qid]).map(r => ({
+    k: 'imdb:' + r.id,
+    t: r.l,
+    y: r.y,
+    p: imdbPoster(r.i && r.i.imageUrl),
+    s: r.s,
+    type: IMDB_TYPES[r.qid]
+  }));
+}
+
 let searchTimer, searchSeq = 0;
 function setupSearch(){
   const input = document.getElementById('search');
@@ -405,34 +447,21 @@ function setupSearch(){
     const q = input.value.trim();
     const seq = ++searchSeq;
     if (q.length < 2) { results.innerHTML = ''; status.textContent = ''; return; }
-    status.textContent = 'Buscando…';
-    let items = [];
-    try {
-      const res = await fetch('https://itunes.apple.com/search?media=movie&entity=movie&limit=12&country=BR&term=' + encodeURIComponent(q));
-      const data = await res.json();
-      items = (data.results || []).map(r => ({
-        k: 'i:' + r.trackId,
-        t: r.trackName,
-        y: r.releaseDate ? Number(r.releaseDate.slice(0, 4)) : undefined,
-        p: r.artworkUrl100 ? r.artworkUrl100.replace('100x100bb', '200x200bb') : undefined
-      }));
-    } catch {}
+    status.textContent = 'Buscando no IMDb…';
+    let items = [], failed = false;
+    try { items = await searchImdb(q); } catch { failed = true; }
     if (seq !== searchSeq) return;
-    // Movies other people in the group already marked also show up.
-    const fromGroup = [];
-    Object.values(S.cache).forEach(c => c.movies.forEach(m => {
-      if (norm(m.t).includes(norm(q)) && !fromGroup.some(x => sameMovie(x, m)) && !items.some(x => sameMovie(x, m))) fromGroup.push(m);
-    }));
-    items = fromGroup.slice(0, 5).concat(items);
     const manual = {k: 't:' + norm(q), t: q};
-    status.textContent = items.length ? '' : 'Nenhum resultado no catálogo.';
+    status.textContent = failed ? 'IMDb indisponível agora.' : items.length ? '' : 'Nada encontrado no IMDb.';
     results.innerHTML = items.map((m, i) => `
       <div class="movie">${posterHtml(m)}
-        <div class="info"><div class="name">${esc(m.t)}</div><div class="meta">${m.y || ''}</div></div>
+        <div class="info"><div class="name">${esc(m.t)}</div>
+          <div class="meta">${[m.y, m.type !== 'Filme' ? m.type : ''].filter(Boolean).join(' · ')}${imdbLink(m)}</div>
+          ${m.s ? `<div class="meta">${esc(m.s)}</div>` : ''}</div>
         ${hasMine(m) ? '<span class="badge">✓ Já vi</span>' : `<button class="btn small" data-add="${i}">Já vi</button>`}
       </div>`).join('') + `
       <div class="movie"><div class="poster">✍️</div>
-        <div class="info"><div class="name">Adicionar "${esc(q)}"</div><div class="meta">Sem poster, do jeito que você digitou</div></div>
+        <div class="info"><div class="name">Adicionar "${esc(q)}"</div><div class="meta">Não achou no IMDb? Adicione do jeito que digitou</div></div>
         <button class="btn ghost small" data-add="manual">Já vi</button></div>`;
     results.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
       const m = b.dataset.add === 'manual' ? manual : items[Number(b.dataset.add)];
@@ -547,7 +576,7 @@ async function renderPerson(id){
     const list = filtered(sorted(entry.movies));
     document.getElementById('personList').innerHTML = list.length ? list.map((m, i) => `
       <div class="movie">${posterHtml(m)}
-        <div class="info"><div class="name">${esc(m.t)}</div><div class="meta">${m.y || ''}</div></div>
+        <div class="info"><div class="name">${esc(m.t)}</div><div class="meta">${m.y || ''}${imdbLink(m)}</div></div>
         ${hasMine(m) ? '<span class="badge">✓ Eu também</span>' : `<button class="btn ghost small" data-also="${esc(m.k)}">+ Também vi</button>`}
       </div>`).join('') : `<div class="empty">${entry.movies.length ? 'Nada encontrado.' : 'Ainda não marcou nenhum filme.'}</div>`;
     document.querySelectorAll('[data-also]').forEach(b => b.onclick = () => {

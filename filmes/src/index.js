@@ -172,6 +172,39 @@ async function leaveGroup(request, env, code, id, index) {
   return json({ ok: true });
 }
 
+// ---------- IMDb search (fallback proxy) ----------
+// The browser calls IMDb's suggestion endpoint directly. This proxy is only
+// used if that is blocked, and answers are cached at the edge for a day.
+
+export function imdbUrl(q) {
+  const clean = q.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const first = /[a-z0-9]/.test(clean[0]) ? clean[0] : 'x';
+  return `https://v2.sg.media-imdb.com/suggestion/${first}/${encodeURIComponent(clean)}.json`;
+}
+
+async function imdbSearch(request, url) {
+  const q = cleanText(url.searchParams.get('q'), 80);
+  if (q.length < 2) return json({ ok: true, d: [] });
+
+  const cacheKey = new Request(`https://imdb-cache.local/${encodeURIComponent(q.toLowerCase())}`);
+  const cache = caches.default;
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  const res = await fetch(imdbUrl(q), { headers: { 'user-agent': 'Mozilla/5.0', accept: 'application/json' } });
+  if (!res.ok) return fail('imdb_unavailable', 502);
+  const data = await res.json();
+
+  const response = new Response(JSON.stringify({ ok: true, d: data.d || [] }), {
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'public, max-age=86400'
+    }
+  });
+  await cache.put(cacheKey, response.clone());
+  return response;
+}
+
 // ---------- router ----------
 
 export default {
@@ -183,6 +216,10 @@ export default {
     if (parts[0] !== 'api') return env.ASSETS.fetch(request);
 
     try {
+      if (parts.length === 2 && parts[1] === 'imdb' && method === 'GET') {
+        return await imdbSearch(request, url);
+      }
+
       if (parts.length === 2 && parts[1] === 'g' && method === 'POST') {
         return await createGroup(request, env);
       }
