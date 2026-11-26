@@ -737,6 +737,7 @@ body{
     <div
       id="conn"
       class="room"
+      data-i18n="conn.connecting"
     >
       connecting…
     </div>
@@ -794,6 +795,7 @@ body{
               data-player="p1"
               data-points="1"
               aria-label="Add one point"
+              data-i18n-aria="add.oneAria"
             >
 
               <span
@@ -831,12 +833,16 @@ body{
               </span>
 
 
-              <span class="add-label">
+              <span class="add-label"
+                data-i18n="add.glass"
+              >
                 Glass
               </span>
 
 
-              <span class="add-points">
+              <span class="add-points"
+                data-i18n="add.one"
+              >
                 +1 point
               </span>
 
@@ -850,6 +856,7 @@ body{
               data-player="p1"
               data-points="2"
               aria-label="Add two points"
+              data-i18n-aria="add.twoAria"
             >
 
               <span
@@ -887,12 +894,16 @@ body{
               </span>
 
 
-              <span class="add-label">
+              <span class="add-label"
+                data-i18n="add.bottle"
+              >
                 Bottle
               </span>
 
 
-              <span class="add-points">
+              <span class="add-points"
+                data-i18n="add.two"
+              >
                 +2 points
               </span>
 
@@ -934,6 +945,7 @@ body{
               data-player="p2"
               data-points="1"
               aria-label="Add one point"
+              data-i18n-aria="add.oneAria"
             >
 
               <span
@@ -971,12 +983,16 @@ body{
               </span>
 
 
-              <span class="add-label">
+              <span class="add-label"
+                data-i18n="add.glass"
+              >
                 Glass
               </span>
 
 
-              <span class="add-points">
+              <span class="add-points"
+                data-i18n="add.one"
+              >
                 +1 point
               </span>
 
@@ -990,6 +1006,7 @@ body{
               data-player="p2"
               data-points="2"
               aria-label="Add two points"
+              data-i18n-aria="add.twoAria"
             >
 
               <span
@@ -1027,12 +1044,16 @@ body{
               </span>
 
 
-              <span class="add-label">
+              <span class="add-label"
+                data-i18n="add.bottle"
+              >
                 Bottle
               </span>
 
 
-              <span class="add-points">
+              <span class="add-points"
+                data-i18n="add.two"
+              >
                 +2 points
               </span>
 
@@ -1052,6 +1073,7 @@ body{
         <button
           class="btn"
           id="undoBtn"
+          data-i18n="btn.undo"
         >
           Undo last point
         </button>
@@ -1060,6 +1082,7 @@ body{
         <button
           class="btn danger"
           id="closeBtn"
+          data-i18n="btn.closeDay"
         >
           Close day
         </button>
@@ -1070,6 +1093,7 @@ body{
       <div
         class="status"
         id="lastPoint"
+        data-i18n="today.none"
       >
         No points yet today.
       </div>
@@ -1091,7 +1115,9 @@ body{
 
     <div class="card">
 
-      <h3>
+      <h3
+        data-i18n="general.title"
+      >
         Overall score
       </h3>
 
@@ -1169,7 +1195,9 @@ body{
 
     <div class="card">
 
-      <h3>
+      <h3
+        data-i18n="history.title"
+      >
         History
       </h3>
 
@@ -1199,6 +1227,7 @@ body{
         <button
           class="btn active"
           id="weekBtn"
+          data-i18n="charts.weekly"
         >
           Weekly
         </button>
@@ -1207,6 +1236,7 @@ body{
         <button
           class="btn"
           id="monthBtn"
+          data-i18n="charts.monthly"
         >
           Monthly
         </button>
@@ -1240,12 +1270,27 @@ body{
     <div class="card settings">
 
 
-      <h3>
+      <h3
+        data-i18n="settings.title"
+      >
         Settings
       </h3>
 
 
-      <label>
+      <label
+        data-i18n="settings.language"
+      >
+        Language
+      </label>
+
+      <div
+        id="languagePicker"
+      ></div>
+
+
+      <label
+        data-i18n="settings.p1"
+      >
         Player 1 name
       </label>
 
@@ -1255,7 +1300,9 @@ body{
       >
 
 
-      <label>
+      <label
+        data-i18n="settings.p2"
+      >
         Player 2 name
       </label>
 
@@ -1272,6 +1319,7 @@ body{
           width:100%;
           margin-top:12px;
         "
+        data-i18n="settings.save"
       >
         Save names
       </button>
@@ -1294,6 +1342,7 @@ body{
   <button
     class="active"
     data-view="today"
+    data-i18n="nav.today"
   >
     Today
   </button>
@@ -1301,6 +1350,7 @@ body{
 
   <button
     data-view="general"
+    data-i18n="nav.general"
   >
     General
   </button>
@@ -1308,6 +1358,7 @@ body{
 
   <button
     data-view="history"
+    data-i18n="nav.history"
   >
     History
   </button>
@@ -1315,6 +1366,7 @@ body{
 
   <button
     data-view="charts"
+    data-i18n="nav.charts"
   >
     Charts
   </button>
@@ -1322,6 +1374,7 @@ body{
 
   <button
     data-view="settings"
+    data-i18n="nav.settings"
   >
     Settings
   </button>
@@ -1335,10 +1388,41 @@ body{
 ></div>
 
 
+<script src="/i18n.js"></script>
+
 <script src="/room-gate.js"></script>
 
 
 <script>
+
+
+// =========================================
+// LANGUAGE
+// =========================================
+
+I18n.apply();
+
+
+document
+  .getElementById(
+    'languagePicker'
+  )
+  .appendChild(
+
+    I18n.picker(
+      `
+        width:100%;
+        background:#0f172a;
+        border:1px solid var(--line);
+        color:var(--text);
+        border-radius:10px;
+        padding:12px;
+        font-size:16px;
+        margin-bottom:12px;
+      `
+    )
+
+  );
 
 
 // =========================================
@@ -1400,9 +1484,12 @@ document
   .textContent =
     room
       ?
-      'Room: '
-      +
-      room
+      I18n.t(
+        'app.room',
+        {
+          room
+        }
+      )
       :
       '';
 
@@ -1542,7 +1629,7 @@ async function api(
     result = {
       ok:false,
       error:
-        'Invalid server response'
+        'invalid_response'
     };
 
   }
@@ -1610,7 +1697,9 @@ function connect(){
     () => {
 
       $('conn').textContent =
-        'live';
+        I18n.t(
+          'conn.live'
+        );
 
     };
 
@@ -1619,7 +1708,9 @@ function connect(){
     () => {
 
       $('conn').textContent =
-        'reconnecting…';
+        I18n.t(
+          'conn.reconnecting'
+        );
 
 
       /*
@@ -1643,7 +1734,9 @@ function connect(){
     () => {
 
       $('conn').textContent =
-        'connection error';
+        I18n.t(
+          'conn.error'
+        );
 
     };
 
@@ -1703,7 +1796,7 @@ function fmtDate(
       'T12:00:00'
     )
       .toLocaleDateString(
-        undefined,
+        I18n.locale,
         {
           weekday:
             'long',
@@ -1907,36 +2000,40 @@ function render(){
 
 
     $('lastPoint').textContent =
-      'Last: '
-      +
-      lastName
-      +
-      ' +'
-      +
-      lastPoints
-      +
-      ' · '
-      +
-      new Date(
-        last.at
-      )
-        .toLocaleTimeString(
-          [],
-          {
-            hour:
-              '2-digit',
+      I18n.t(
+        'today.last',
+        {
+          name:
+            lastName,
 
-            minute:
-              '2-digit'
-          }
-        );
+          points:
+            lastPoints,
+
+          time:
+            new Date(
+              last.at
+            )
+              .toLocaleTimeString(
+                I18n.locale,
+                {
+                  hour:
+                    '2-digit',
+
+                  minute:
+                    '2-digit'
+                }
+              )
+        }
+      );
 
   }
 
   else{
 
     $('lastPoint').textContent =
-      'No points yet today.';
+      I18n.t(
+        'today.none'
+      );
 
   }
 
@@ -1962,27 +2059,43 @@ function render(){
 
 
   $('p1totalLabel').textContent =
-    name1
-    +
-    ' total points';
+    I18n.t(
+      'general.totalPoints',
+      {
+        name:
+          name1
+      }
+    );
 
 
   $('p2totalLabel').textContent =
-    name2
-    +
-    ' total points';
+    I18n.t(
+      'general.totalPoints',
+      {
+        name:
+          name2
+      }
+    );
 
 
   $('p1winsLabel').textContent =
-    name1
-    +
-    ' days won';
+    I18n.t(
+      'general.daysWon',
+      {
+        name:
+          name1
+      }
+    );
 
 
   $('p2winsLabel').textContent =
-    name2
-    +
-    ' days won';
+    I18n.t(
+      'general.daysWon',
+      {
+        name:
+          name2
+      }
+    );
 
 
   renderHistory();
@@ -2015,7 +2128,13 @@ function renderHistory(){
       ?
       ''
       :
-      '<div class="room">No closed days yet.</div>';
+      '<div class="room">'
+      +
+      I18n.t(
+        'history.empty'
+      )
+      +
+      '</div>';
 
 
   for (
@@ -2039,7 +2158,9 @@ function renderHistory(){
     const winner =
       p1 === p2
         ?
-        'Tie'
+        I18n.t(
+          'history.tie'
+        )
         :
         (
           p1 > p2
@@ -2069,7 +2190,7 @@ function renderHistory(){
           </b>
 
           <div class="room">
-            Winner: ${winner}
+            ${I18n.t('history.winner', { name: winner })}
           </div>
 
         </div>
@@ -2163,7 +2284,7 @@ function chartRows(){
               'T12:00:00'
             )
               .toLocaleDateString(
-                [],
+                I18n.locale,
                 {
                   weekday:
                     'short'
@@ -2220,7 +2341,7 @@ function chartRows(){
               '-01T12:00:00'
             )
               .toLocaleDateString(
-                [],
+                I18n.locale,
                 {
                   month:
                     'short'
@@ -2534,8 +2655,14 @@ document
 
               toast(
                 result.error
-                ||
-                'Could not add points'
+                  ?
+                  I18n.error(
+                    result.error
+                  )
+                  :
+                  I18n.t(
+                    'toast.addFailed'
+                  )
               );
 
             }
@@ -2551,7 +2678,9 @@ document
 
 
             toast(
-              'Connection error'
+              I18n.t(
+                'toast.connError'
+              )
             );
 
           }
@@ -2610,7 +2739,9 @@ $('undoBtn')
 
 
           toast(
-            'Last score removed'
+            I18n.t(
+              'toast.undone'
+            )
           );
 
         }
@@ -2619,8 +2750,14 @@ $('undoBtn')
 
           toast(
             result.error
-            ||
-            'Undo failed'
+              ?
+              I18n.error(
+                result.error
+              )
+              :
+              I18n.t(
+                'toast.undoFailed'
+              )
           );
 
         }
@@ -2635,7 +2772,9 @@ $('undoBtn')
 
 
         toast(
-          'Connection error'
+          I18n.t(
+            'toast.connError'
+          )
         );
 
       }
@@ -2665,7 +2804,11 @@ $('closeBtn')
       const confirmed =
         confirm(
 
-          'Close today?\n'
+          I18n.t(
+            'confirm.closeDay'
+          )
+          +
+          '\n'
           +
           state.players[0].name
           +
@@ -2717,7 +2860,9 @@ $('closeBtn')
 
 
           toast(
-            'Day closed'
+            I18n.t(
+              'toast.dayClosed'
+            )
           );
 
         }
@@ -2732,7 +2877,9 @@ $('closeBtn')
 
 
         toast(
-          'Connection error'
+          I18n.t(
+            'toast.connError'
+          )
         );
 
       }
@@ -2787,7 +2934,9 @@ $('saveSettings')
 
 
           toast(
-            'Names saved'
+            I18n.t(
+              'toast.namesSaved'
+            )
           );
 
         }
@@ -2802,7 +2951,9 @@ $('saveSettings')
 
 
         toast(
-          'Connection error'
+          I18n.t(
+            'toast.connError'
+          )
         );
 
       }
@@ -3000,7 +3151,9 @@ async function init(){
 
 
     $('conn').textContent =
-      'offline';
+      I18n.t(
+        'conn.offline'
+      );
 
 
     setTimeout(
@@ -3078,7 +3231,9 @@ async function init(){
       RoomGate.show(
         'pin',
         room,
-        'The room PIN changed or is wrong. Enter it again.'
+        I18n.t(
+          'gate.pinChanged'
+        )
       );
 
       return;
@@ -3090,7 +3245,13 @@ async function init(){
       RoomGate.show(
         'pin',
         room,
-        response.error
+        I18n.error(
+          response.error,
+          {
+            minutes:
+              response.minutes
+          }
+        )
       );
 
   }

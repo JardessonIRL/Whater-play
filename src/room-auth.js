@@ -144,7 +144,7 @@ export async function handleRoomAccess(
       await request.json().catch(() => ({}));
 
     if (!isValidPin(body.pin)) {
-      return json({ ok: false, error: 'PIN must be 4 to 8 digits.' }, 400);
+      return json({ ok: false, error: 'pin_format' }, 400);
     }
 
     await storage.put('meta', {
@@ -179,7 +179,7 @@ export async function handleRoomAccess(
         await request.json().catch(() => ({}));
 
       if (!isValidPin(body.pin)) {
-        return json({ ok: false, error: 'PIN must be 4 to 8 digits.' }, 400);
+        return json({ ok: false, error: 'pin_format' }, 400);
       }
 
       await storage.put('meta', {
@@ -210,7 +210,8 @@ export async function handleRoomAccess(
     return json(
       {
         ok: false,
-        error: `Too many wrong PINs. Try again in ${minutes} min.`
+        error: 'too_many_attempts',
+        minutes
       },
       429
     );
