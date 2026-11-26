@@ -98,29 +98,9 @@
     return {
       ok: response.ok && result.ok,
       status: response.status,
-      error: result.error
+      error: result.error,
+      minutes: result.minutes
     };
-
-  }
-
-
-  function friendlyError(error) {
-
-    switch (error) {
-
-      case 'room_not_found':
-        return 'Room not found. Check the code.';
-
-      case 'invalid_pin':
-        return 'Wrong PIN.';
-
-      case 'pin_required':
-        return 'Enter the room PIN.';
-
-      default:
-        return error || 'Something went wrong. Try again.';
-
-    }
 
   }
 
@@ -146,6 +126,16 @@
     #roomGate .gate{
       max-width:420px;
       margin:0 auto;
+    }
+    #roomGate .gate-lang{
+      display:block;
+      margin:0 0 0 auto;
+      background:var(--card,#151c30);
+      border:1px solid var(--line,#28344f);
+      color:var(--text,#f8fafc);
+      border-radius:10px;
+      padding:8px 10px;
+      font-size:15px;
     }
     #roomGate .gate-logo{
       display:block;
@@ -310,8 +300,15 @@
       document.body.appendChild(root);
     }
 
+    const language =
+      I18n.picker();
+
+    language.className =
+      'gate-lang';
+
     root.replaceChildren(
       el('div', { class: 'gate' }, [
+        language,
         el('img', {
           class: 'gate-logo',
           src: '/notification-icon.png',
@@ -334,16 +331,16 @@
       el('h1', { text: 'Water Play' }),
       el('p', {
         class: 'gate-sub',
-        text: 'A shared daily water score for two. Create a room or join one with its code and PIN.'
+        text: I18n.t('gate.tagline')
       }),
       el('button', {
         class: 'gate-btn primary',
-        text: 'Create a room',
+        text: I18n.t('gate.create'),
         onclick: showCreate
       }),
       el('button', {
         class: 'gate-btn',
-        text: 'Join a room',
+        text: I18n.t('gate.join'),
         onclick: () => showJoin()
       })
     ]);
@@ -361,26 +358,26 @@
     const button =
       el('button', {
         class: 'gate-btn primary',
-        text: 'Create room'
+        text: I18n.t('gate.createRoom')
       });
 
     mount([
       el('div', { class: 'gate-card' }, [
-        el('h2', { text: 'Create a room' }),
-        el('label', { text: 'Your name' }),
+        el('h2', { text: I18n.t('gate.create') }),
+        el('label', { text: I18n.t('gate.yourName') }),
         el('input', { id: 'gateP1', maxlength: '30', placeholder: 'Player 1' }),
-        el('label', { text: "The other player's name" }),
+        el('label', { text: I18n.t('gate.otherName') }),
         el('input', { id: 'gateP2', maxlength: '30', placeholder: 'Player 2' }),
-        el('label', { text: 'Room PIN (4 to 8 digits)' }),
+        el('label', { text: I18n.t('gate.pinLabel') }),
         pinInput('gatePin', '••••'),
-        el('label', { text: 'Confirm PIN' }),
+        el('label', { text: I18n.t('gate.confirmPin') }),
         pinInput('gatePin2', '••••'),
         button,
         error
       ]),
       el('button', {
         class: 'gate-link',
-        text: 'Back',
+        text: I18n.t('gate.back'),
         onclick: showWelcome
       })
     ]);
@@ -396,16 +393,16 @@
       error.textContent = '';
 
       if (!/^\d{4,8}$/.test(pin)) {
-        error.textContent = 'The PIN must be 4 to 8 digits.';
+        error.textContent = I18n.t('gate.pinFormat');
         return;
       }
 
       if (pin !== pin2) {
-        error.textContent = "The PINs don't match.";
+        error.textContent = I18n.t('gate.pinMismatch');
         return;
       }
 
-      busy(button, true, 'Creating…');
+      busy(button, true, I18n.t('gate.creating'));
 
       try {
 
@@ -424,7 +421,7 @@
           await response.json().catch(() => ({}));
 
         if (!response.ok || !result.ok) {
-          throw new Error(result.error || 'Could not create the room.');
+          throw new Error(I18n.error(result.error));
         }
 
         // The creator is player 1 on this device
@@ -436,7 +433,7 @@
       catch (err) {
 
         error.textContent = err.message;
-        busy(button, false, 'Create room');
+        busy(button, false, I18n.t('gate.createRoom'));
 
       }
 
@@ -455,20 +452,20 @@
 
     mount([
       el('div', { class: 'gate-card' }, [
-        el('h2', { text: 'Room created ✓' }),
-        el('div', { class: 'gate-note', text: 'Room code' }),
+        el('h2', { text: I18n.t('gate.created') }),
+        el('div', { class: 'gate-note', text: I18n.t('gate.roomCode') }),
         el('div', { class: 'gate-code', text: room }),
         el('p', {
           class: 'gate-note',
-          text: 'Send the code to the other player and tell them the PIN. Save both: you will need them on a new phone.'
+          text: I18n.t('gate.createdNote')
         }),
         el('button', {
           class: 'gate-btn',
-          text: 'Share invite',
+          text: I18n.t('gate.share'),
           onclick: async () => {
 
             const text =
-              `Join my Water Play room! Code: ${room}`;
+              I18n.t('gate.inviteText', { room });
 
             try {
 
@@ -477,7 +474,7 @@
               }
               else {
                 await navigator.clipboard.writeText(text + '\n' + link);
-                shareStatus.textContent = 'Invite copied.';
+                shareStatus.textContent = I18n.t('gate.inviteCopied');
               }
 
             }
@@ -490,7 +487,7 @@
         shareStatus,
         el('button', {
           class: 'gate-btn primary',
-          text: 'Enter room',
+          text: I18n.t('gate.enter'),
           onclick: () => enterRoom(room, pin)
         })
       ])
@@ -509,7 +506,7 @@
     const button =
       el('button', {
         class: 'gate-btn primary',
-        text: 'Join room'
+        text: I18n.t('gate.joinRoom')
       });
 
     const codeInput =
@@ -527,17 +524,17 @@
 
     mount([
       el('div', { class: 'gate-card' }, [
-        el('h2', { text: 'Join a room' }),
-        el('label', { text: 'Room code' }),
+        el('h2', { text: I18n.t('gate.join') }),
+        el('label', { text: I18n.t('gate.roomCode') }),
         codeInput,
-        el('label', { text: 'PIN' }),
+        el('label', { text: I18n.t('gate.pin') }),
         pinInput('gateJoinPin', '••••'),
         button,
         error
       ]),
       el('button', {
         class: 'gate-link',
-        text: 'Back',
+        text: I18n.t('gate.back'),
         onclick: () => {
           if (prefillRoom) {
             leaveRoom(prefillRoom);
@@ -567,11 +564,11 @@
       error.textContent = '';
 
       if (!room) {
-        error.textContent = 'Enter the room code.';
+        error.textContent = I18n.t('gate.enterCode');
         return;
       }
 
-      busy(button, true, 'Checking…');
+      busy(button, true, I18n.t('gate.checking'));
 
       try {
 
@@ -588,14 +585,14 @@
           return;
         }
 
-        error.textContent = friendlyError(result.error);
+        error.textContent = I18n.error(result.error, result);
 
       }
       catch (err) {
-        error.textContent = 'No connection. Try again.';
+        error.textContent = I18n.t('gate.noConnection');
       }
 
-      busy(button, false, 'Join room');
+      busy(button, false, I18n.t('gate.joinRoom'));
 
     });
 
@@ -612,19 +609,19 @@
     const button =
       el('button', {
         class: 'gate-btn primary',
-        text: 'Save PIN'
+        text: I18n.t('gate.savePin')
       });
 
     mount([
       el('div', { class: 'gate-card' }, [
-        el('h2', { text: 'Protect your room' }),
+        el('h2', { text: I18n.t('gate.protectTitle') }),
         el('p', {
           class: 'gate-note',
-          text: `Room "${room}" doesn't have a PIN yet. Choose one now. The other player will need it once on their phone. Your scores are kept.`
+          text: I18n.t('gate.protectNote', { room })
         }),
-        el('label', { text: 'New PIN (4 to 8 digits)' }),
+        el('label', { text: I18n.t('gate.newPin') }),
         pinInput('gateNewPin', '••••'),
-        el('label', { text: 'Confirm PIN' }),
+        el('label', { text: I18n.t('gate.confirmPin') }),
         pinInput('gateNewPin2', '••••'),
         button,
         error
@@ -642,16 +639,16 @@
       error.textContent = '';
 
       if (!/^\d{4,8}$/.test(pin)) {
-        error.textContent = 'The PIN must be 4 to 8 digits.';
+        error.textContent = I18n.t('gate.pinFormat');
         return;
       }
 
       if (pin !== pin2) {
-        error.textContent = "The PINs don't match.";
+        error.textContent = I18n.t('gate.pinMismatch');
         return;
       }
 
-      busy(button, true, 'Saving…');
+      busy(button, true, I18n.t('gate.saving'));
 
       try {
 
@@ -681,18 +678,18 @@
           result.error === 'invalid_pin' ||
           result.error === 'pin_required'
         ) {
-          showJoin(room, 'This room already has a PIN. Enter it below.');
+          showJoin(room, I18n.t('gate.alreadyHasPin'));
           return;
         }
 
-        error.textContent = friendlyError(result.error);
+        error.textContent = I18n.error(result.error, result);
 
       }
       catch (err) {
-        error.textContent = 'No connection. Try again.';
+        error.textContent = I18n.t('gate.noConnection');
       }
 
-      busy(button, false, 'Save PIN');
+      busy(button, false, I18n.t('gate.savePin'));
 
     });
 
@@ -728,7 +725,7 @@
           break;
 
         case 'notFound':
-          showJoin('', 'Room not found. Check the code.');
+          showJoin('', I18n.error('room_not_found'));
           storageRemove(ROOM_KEY);
           break;
 

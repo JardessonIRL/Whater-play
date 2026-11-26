@@ -5,6 +5,11 @@ import {
   handleRoomAccess
 } from "./room-auth.js";
 
+import {
+  PUSH_LANGUAGES,
+  pushText
+} from "./push-text.js";
+
 
 export class ScoreRoom {
 
@@ -500,35 +505,50 @@ export class ScoreRoom {
         1;
 
 
-    const payload =
-      JSON.stringify({
+    const payloadFor =
+      lang =>
+        JSON.stringify({
 
-        title:
-          '💧 Water Play',
-
-
-        body:
-          `${scorer?.name || 'Opponent'} marcou +${amount}! `
-          +
-          `${p1?.name || 'Player 1'} `
-          +
-          `${data.today.scores.p1} × ${data.today.scores.p2} `
-          +
-          `${p2?.name || 'Player 2'}`,
+          title:
+            '💧 Water Play',
 
 
-        url:
-          '/?room='
-          +
-          encodeURIComponent(
-            room
-          ),
+          body:
+            pushText(
+              lang,
+              'scored',
+              {
+                name:
+                  scorer?.name
+                  ||
+                  'Player',
+
+                points:
+                  amount
+              }
+            )
+            +
+            ' '
+            +
+            `${p1?.name || 'Player 1'} `
+            +
+            `${data.today.scores.p1} × ${data.today.scores.p2} `
+            +
+            `${p2?.name || 'Player 2'}`,
 
 
-        timestamp:
-          Date.now()
+          url:
+            '/?room='
+            +
+            encodeURIComponent(
+              room
+            ),
 
-      });
+
+          timestamp:
+            Date.now()
+
+        });
 
 
     const deadEndpoints =
@@ -549,7 +569,9 @@ export class ScoreRoom {
 
           entry.subscription,
 
-          payload,
+          payloadFor(
+            entry.lang
+          ),
 
           {
 
@@ -928,7 +950,7 @@ export class ScoreRoom {
 
 
             error:
-              'Invalid player'
+              'invalid_player'
 
           },
 
@@ -964,7 +986,7 @@ export class ScoreRoom {
 
 
             error:
-              'Invalid push subscription'
+              'invalid_subscription'
 
           },
 
@@ -1009,6 +1031,16 @@ export class ScoreRoom {
 
         subscription:
           body.subscription,
+
+
+        lang:
+          PUSH_LANGUAGES.includes(
+            body.lang
+          )
+            ?
+            body.lang
+            :
+            'en',
 
 
         addedAt:
@@ -1070,7 +1102,7 @@ export class ScoreRoom {
 
 
             error:
-              'VAPID_PRIVATE_KEY secret is not configured on the server.'
+              'vapid_missing'
 
           },
 
@@ -1118,7 +1150,7 @@ export class ScoreRoom {
 
 
             error:
-              'This device is not registered. Tap "Enable notifications" again.'
+              'device_not_registered'
 
           },
 
@@ -1148,7 +1180,10 @@ export class ScoreRoom {
 
 
             body:
-              'Test notification ✓',
+              pushText(
+                entry.lang,
+                'test'
+              ),
 
 
             url:
@@ -1261,6 +1296,10 @@ export class ScoreRoom {
 
 
             error:
+              'push_failed',
+
+
+            detail:
               err?.message
               ||
               String(
@@ -1380,7 +1419,7 @@ export class ScoreRoom {
 
 
             error:
-              'Invalid player'
+              'invalid_player'
 
           },
 
@@ -1973,7 +2012,7 @@ export default {
             false,
 
           error:
-            'Could not create a room. Try again.'
+            'create_failed'
 
         },
 

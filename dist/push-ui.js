@@ -268,7 +268,7 @@
     ) {
 
       throw new Error(
-        'This browser does not support Service Workers.'
+        I18n.t('push.noServiceWorker')
       );
 
     }
@@ -311,7 +311,7 @@
     ) {
 
       element.textContent =
-        'Notifications are not supported on this device.';
+        I18n.t('push.unsupportedDevice');
 
       return;
 
@@ -324,7 +324,7 @@
     ) {
 
       element.textContent =
-        'Notifications are blocked in browser settings.';
+        I18n.t('push.blocked');
 
       return;
 
@@ -351,7 +351,7 @@
     ) {
 
       element.textContent =
-        'Notifications enabled on this device.';
+        I18n.t('push.enabledOnDevice');
 
     }
 
@@ -360,14 +360,14 @@
     ) {
 
       element.textContent =
-        'Push is enabled. Choose who owns this device.';
+        I18n.t('push.chooseOwner');
 
     }
 
     else {
 
       element.textContent =
-        'Notifications are not enabled yet.';
+        I18n.t('push.notEnabledYet');
 
     }
 
@@ -403,7 +403,7 @@
     ) {
 
       throw new Error(
-        'VAPID public key is not configured.'
+        I18n.t('push.noPublicKey')
       );
 
     }
@@ -507,6 +507,10 @@
 
               oldEndpoint,
 
+              // Notifications arrive in this language
+              lang:
+                I18n.lang,
+
               subscription:
                 subscription.toJSON()
 
@@ -527,9 +531,10 @@
     ) {
 
       throw new Error(
-        result.error
-        ||
-        'Could not save notification subscription.'
+        I18n.error(
+          result.error,
+          result
+        )
       );
 
     }
@@ -557,7 +562,7 @@
     ) {
 
       alert(
-        'Choose who owns this device first.'
+        I18n.t('push.chooseFirst')
       );
 
       return;
@@ -570,7 +575,7 @@
 
 
     button.textContent =
-      'Enabling…';
+      I18n.t('push.enabling');
 
 
     try {
@@ -584,7 +589,7 @@
       ) {
 
         throw new Error(
-          'Notifications are not supported by this browser.'
+          I18n.t('push.unsupportedBrowser')
         );
 
       }
@@ -604,7 +609,7 @@
       ) {
 
         throw new Error(
-          'Notification permission was not granted.'
+          I18n.t('push.permissionDenied')
         );
 
       }
@@ -617,11 +622,11 @@
 
 
       status.textContent =
-        '✓ Notifications enabled for this device.';
+        I18n.t('push.enabledNow');
 
 
       button.textContent =
-        'Notifications enabled';
+        I18n.t('push.enabledButton');
 
     }
 
@@ -635,11 +640,11 @@
       status.textContent =
         err.message
         ||
-        'Could not enable notifications.';
+        I18n.t('push.enableFailed');
 
 
       button.textContent =
-        'Enable notifications';
+        I18n.t('push.enable');
 
     }
 
@@ -681,7 +686,7 @@
       ) {
 
         throw new Error(
-          'Notifications are not enabled on this device yet.'
+          I18n.t('push.notEnabledDevice')
         );
 
       }
@@ -747,7 +752,7 @@
       ) {
 
         status.textContent =
-          'Renewing this device registration…';
+          I18n.t('push.renewing');
 
 
         subscription =
@@ -775,16 +780,17 @@
       ) {
 
         throw new Error(
-          result.error
-          ||
-          'Test notification failed.'
+          I18n.error(
+            result.error,
+            result
+          )
         );
 
       }
 
 
       status.textContent =
-        '✓ Test sent. It should arrive in a few seconds.';
+        I18n.t('push.testSent');
 
     }
 
@@ -798,7 +804,7 @@
       status.textContent =
         err.message
         ||
-        'Test notification failed.';
+        I18n.t('push.testFailed');
 
     }
 
@@ -873,7 +879,7 @@
 
 
     title.textContent =
-      'Notifications';
+      I18n.t('push.title');
 
 
     const description =
@@ -894,7 +900,7 @@
 
 
     description.textContent =
-      'Choose who owns this phone. When the other player scores, this device will receive a notification.';
+      I18n.t('push.description');
 
 
     const label =
@@ -904,7 +910,7 @@
 
 
     label.textContent =
-      'This device belongs to';
+      I18n.t('push.belongsTo');
 
 
     const select =
@@ -941,7 +947,7 @@
 
 
     emptyOption.textContent =
-      'Select player';
+      I18n.t('push.selectPlayer');
 
 
     select.appendChild(
@@ -1021,7 +1027,7 @@
 
 
     button.textContent =
-      'Enable notifications';
+      I18n.t('push.enable');
 
 
     const status =
@@ -1067,7 +1073,7 @@
 
 
     testButton.textContent =
-      'Send test notification';
+      I18n.t('push.test');
 
 
     testButton.addEventListener(
